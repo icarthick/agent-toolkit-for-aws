@@ -38,7 +38,7 @@ def parse_price_dimensions(price_item: dict) -> dict:
 # Source: https://aws.amazon.com/bedrock/pricing/, cross-checked row-by-row against
 # skills/shared/ai/bedrock-pricing-cache.md (its per-1M rates / 1000).
 # Every row below was re-verified against that cache, the Bedrock model cards
-# (Geo/Global inference ID tables), and the AWS Pricing MCP server on 2026-10-05.
+# (Geo/Global inference ID tables), and the AWS Price List API on 2026-11-05.
 # IMPORTANT: for the common case where a cross-Region inference profile is used for on-demand
 # throughput (Haiku 4.5, Sonnet 5, Opus 4.8, Sonnet 4.6 — see
 # bedrock-inference-profile-model-id.md; note Sonnet 5/Sonnet 4.6 DO support true in-Region
@@ -82,15 +82,17 @@ STATIC_FALLBACK = {
     "amazon.nova-lite-v1:0":                        {"input_per_1k_usd": 0.00006, "output_per_1k_usd": 0.00024},
     "amazon.nova-pro-v1:0":                         {"input_per_1k_usd": 0.0008, "output_per_1k_usd": 0.0032},
     # OpenAI proprietary GPT models, SHORT-CONTEXT (272K) tier. Read off the model
-    # cards 2026-08-21. The PriceList API carries no GPT-5.x/GPT-6 rows, so this
-    # table is the ONLY source. Pricing has an inference-option dimension:
+    # cards, re-verified 2026-11-05. The PriceList API carries no commercial-Region
+    # GPT-5.x/GPT-6 rows, so this table is the ONLY source. Pricing has an
+    # inference-option dimension:
     #   - bare mantle ids and Geo CRIS (us./in. prefixed): 1.10x OpenAI's standard
     #     list price (parity with OpenAI's *data residency* tier)
     #   - Global CRIS (global. prefixed, GPT-5.6 only): OpenAI's standard list
     #     price — cost PARITY, for workloads with no residency constraint
     # The GPT-5.6 family also has a LONG-CONTEXT (1M) tier at 2.0x input / 1.5x
     # output per option, NOT represented here — a >272K workload priced from this
-    # table is understated. GPT-5.5 and GPT-5.4: mantle-only, no CRIS, no 1M tier.
+    # table is understated. GPT-5.5 and GPT-5.4 list us./global. CRIS ids and a 1M
+    # tier on their model cards; only their bare mantle ids are priced here.
     "openai.gpt-5.6-sol":                           {"input_per_1k_usd": 0.0044, "output_per_1k_usd": 0.022},
     "openai.gpt-5.6-terra":                         {"input_per_1k_usd": 0.0022, "output_per_1k_usd": 0.0132},
     "openai.gpt-5.6-luna":                          {"input_per_1k_usd": 0.00022, "output_per_1k_usd": 0.00132},
@@ -108,9 +110,10 @@ STATIC_FALLBACK = {
     "global.openai.gpt-5.6-luna":                   {"input_per_1k_usd": 0.0002, "output_per_1k_usd": 0.0012},
     # GPT-6 family (Astra, Sol, Luna, 6.1 Sol), SHORT-CONTEXT (272K) tier. Read off
     # skills/azure-to-aws/references/shared/openai-on-bedrock.md's GPT-6 short-context
-    # table (verified 2026-10-10). Same inference-option shape as GPT-5.6: bare mantle
-    # id and Geo CRIS (us. prefixed) carry the 1.10x data-residency premium; Global
-    # CRIS (global. prefixed) is OpenAI's standard list price — cost parity.
+    # table, re-verified against the GPT-6 model cards on 2026-11-05. Same
+    # inference-option shape as GPT-5.6: bare mantle id and Geo CRIS (us. prefixed)
+    # carry the 1.10x data-residency premium; Global CRIS (global. prefixed) is
+    # OpenAI's standard list price — cost parity.
     "openai.gpt-6-astra":                           {"input_per_1k_usd": 0.011, "output_per_1k_usd": 0.055},
     "openai.gpt-6-sol":                             {"input_per_1k_usd": 0.0022, "output_per_1k_usd": 0.011},
     "openai.gpt-6-luna":                             {"input_per_1k_usd": 0.00011, "output_per_1k_usd": 0.00055},
@@ -143,7 +146,7 @@ def unavailable(note: str) -> dict:
             "output_per_1k_usd": None, "note": f"Pricing unavailable: {note}"}
 
 
-# AWS Price List API, AmazonBedrockFoundationModels, verified 2026-09-24.
+# AWS Price List API, AmazonBedrockFoundationModels, verified 2026-11-05.
 # servicename: Claude Opus 5.5 (Amazon Bedrock Edition). Prices are per 1K.
 # Runtime uses Geo/Global profiles, or the bare ID in eu-west-2 (verified 2026-10-03).
 _OPUS55_ID = "anthropic.claude-opus-5-5"
@@ -218,7 +221,7 @@ def _opus55_pricing(region: str, model_id: str) -> dict:
         inp, output = 0.004, 0.020
     else:
         inp, output = 0.0044, 0.022
-    verified = "2026-10-03" if prefix == "runtime-in-region" else "2026-09-24"
+    verified = "2026-11-05"
     return {"available": True, "input_per_1k_usd": inp, "output_per_1k_usd": output,
             "note": f"AWS Price List API AmazonBedrockFoundationModels; verified {verified}; "
                     f"Standard tier, {region}, {prefix} inference; no Batch"}
@@ -291,8 +294,8 @@ def lookup(region: str, model_id: str) -> dict:
     # by display name and frequently lacks entries for new inference profiles.
     fb = _static_fallback(model_id)
     if fb:
-        fb["note"] = ("static pricing table (verified 2026-10-05 against "
-                      "aws.amazon.com/bedrock/pricing, the Bedrock model cards' "
+        fb["note"] = ("static pricing table (verified 2026-11-05 against "
+                      "the AWS Price List API, the Bedrock model cards' "
                       "Geo/Global inference ID tables, and the vendored pricing cache)")
         if model_id.endswith("openai.gpt-6-astra"):
             fb["note"] += ("; Standard tier, <=272K input tokens. For >272K, "

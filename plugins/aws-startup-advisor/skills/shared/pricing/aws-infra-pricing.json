@@ -2,14 +2,14 @@
   "_comment": "Shared AWS infrastructure pricing rates (us-east-1, USD) for the estimate phase. Rates evolve on AWS's cadence, independent of the cost algorithm, so they live here as DATA and the estimate procedure does a lookup, not a guess. Each service carries its rates + a multi_az_handling key; the cost FORMULAS live in the estimate phase's prose (the algorithm is not data). Consumed by the heroku-to-aws and azure-to-aws skills; intended to be shared with gcp-to-aws, which still has its own markdown cache. AI-model / DynamoDB / Redshift / Athena / SageMaker rates are NOT here (they remain in the gcp-to-aws pricing cache). Lambda WAS on that exclusion list and no longer is \u2014 azure-to-aws maps consumption-plan Function Apps to Lambda, so the rates were harvested here from gcp's cache.",
   "_region_warning": "EVERY rate in this file is _meta.region (us-east-1) and there is no multiplier. A design targeting another region is being priced with us-east-1 numbers: eu-west-1 and eu-central-1 run roughly 5-12% higher for compute and RDS, and some services differ more. This file cannot fix that on its own \u2014 the consuming estimate MUST compare the design's target region against _meta.region and, when they differ, state the mismatch next to every total and widen the accuracy band. Pricing is cache-only — there is no live pricing lookup to reprice against, so the mismatch is stated rather than corrected. Silently presenting us-east-1 figures as a eu-west-1 estimate is the failure this key exists to prevent.",
   "_meta": {
-    "last_updated": "2026-10-05",
+    "last_updated": "2026-11-05",
     "region": "us-east-1",
     "currency": "USD",
     "accuracy": "\u00b15-10% infrastructure",
     "hours_per_month": 730,
     "staleness_days": 30,
     "staleness_note": "If more than staleness_days past last_updated, infrastructure rates remain reliable; set pricing_source=cached_stale and note it. AI-model rates (not used for heroku->aws) may have drifted.",
-    "last_verification": "2026-10-05 refreshed via the AWS Pricing MCP server (AmazonEC2/AmazonRDS/AmazonElastiCache/AmazonMSK/AmazonEKS/AWSLambda/AWSELB/AmazonEC2 NAT Gateway/AmazonRoute53/AWSQueueService/AmazonSNS/AmazonSES/AmazonCloudFront/AmazonCloudWatch/AWSXRay/AWSSecretsManager/AmazonRDS RDSProxy, us-east-1). Confirmed changes this refresh: EC2 r6i family down ~16.7% (e.g. r6i.large 0.1512->0.126); RDS PostgreSQL Multi-AZ m6g/m6i/r6i/t3/x2g families repriced (t4g family unchanged); Aurora PostgreSQL r6g sizes above .large down ~6%; ElastiCache cache.m6g family down ~28% (e.g. cache.m6g.large 0.206->0.149); EC2 t4g/m6g family rates shifted by <1% (rounding-level). Fargate, Lambda, ALB/NLB, NAT Gateway, Route53, SQS, SNS, MSK, EKS cluster fee, EBS gp3, RDS Proxy, Secrets Manager, S3, SES, CloudFront, CloudWatch, and X-Ray all verified unchanged."
+    "last_verification": "2026-11-05 refreshed via the AWS Price List API (pricing GetProducts, regionCode=us-east-1, OnDemand terms: AmazonEC2 incl. NAT Gateway and EBS / AmazonECS (Fargate) / AmazonRDS incl. Aurora and RDS Proxy / AmazonElastiCache / AmazonMSK / AmazonEKS / AWSLambda / AWSELB / AmazonRoute53 / AWSQueueService / AmazonSNS / AmazonSES / AWSEvents / AmazonS3 / AmazonCloudFront / AmazonCloudWatch / AWSXRay / AWSSecretsManager). Confirmed changes this refresh: Fargate ARM64 memory 0.003556->0.00356 per GB-hour. Unchanged: every EC2, EKS node, RDS PostgreSQL Multi-AZ, Aurora PostgreSQL, ElastiCache and MSK row; Fargate x86 and ARM64 vCPU and x86 memory; ALB/NLB; NAT Gateway; EKS cluster fee; EBS gp3; RDS and Aurora storage and I/O; RDS Proxy; SNS; SES; EventBridge; S3; CloudFront; Secrets Manager; CloudWatch logs and alarms; X-Ray; Lambda. Not confirmed (tiered price, the row names no tier; old values kept, each equals the first tier): Route53 hosted zone and queries, SQS standard and FIFO, CloudWatch custom metric."
   },
   "_multi_az_convention": {
     "_comment": "THE TRAP: a design's multi_az:true means different things per service. Each service rate below carries multi_az_handling so the formula applies the RIGHT adjustment, never a blanket multiplier.",
@@ -22,7 +22,7 @@
     "per_gb_mem_hour": 0.004445,
     "multi_az_handling": "n/a (Fargate cost is task-size driven, not AZ-driven)",
     "per_vcpu_hour_arm64": 0.03238,
-    "per_gb_mem_hour_arm64": 0.003556
+    "per_gb_mem_hour_arm64": 0.00356
   },
   "alb": {
     "monthly_fixed": 16.43,
