@@ -1,19 +1,14 @@
 # AWS Pricing Cache
 
-**Last updated:** 2026-10-10 (added the GPT-6 family — GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, GPT-6.1 Sol — sourced
-from each model's own AWS Bedrock model card and OpenAI's own API pricing page, fetched 2026-10-10; see
-`shared/openai-on-bedrock.md` for full citations. Prior refresh, 2026-10-05: re-verified via the AWS Pricing MCP
-server, aws.amazon.com/bedrock/pricing, and the Bedrock model cards' Geo/Global inference ID tables — Claude
-Sonnet 5 $2/$10 (Global/base) / $2.20/$11 (Geo, `us.`-prefixed), Opus 4.8 $5/$25 (Global/base) / $5.50/$27.50
-(Geo), Sonnet 4.6 $3/$15 (Global/base) / $3.30/$16.50 (Geo), Haiku 4.5 $1/$5 (Global/base) / $1.10/$5.50 (Geo),
-Opus 4.6 $5/$25, Opus 4.1 legacy $15/$75, Claude Fable 5 $10/$50 (Global/base), Fable 5.1 $10/$50 (Global — a
-real, commercially supported option from us-east-1) / $11/$55 (Geo, `us.`-prefixed, for US-only residency), Llama
-4 Maverick/Scout, Llama 3.3 70B, Nova Micro/Lite/Pro, Mistral Large 3, DeepSeek-R1, gpt-oss-20b/120b, GPT-5.6/5.5/5.4
-family all confirmed unchanged via MCP; Fargate/EC2/RDS/ElastiCache/S3 infra rows cross-checked against the
-canonical aws-infra-pricing.json refresh (same date) — see that file's rate changes for EC2 r6i, RDS PostgreSQL
-Multi-AZ, Aurora PostgreSQL r6g, and ElastiCache cache.m6g; this refresh corrects the Geo-vs-Global pricing gap for
-the four Anthropic models that require a cross-Region inference profile — see the Geo vs. Global note in the
-Bedrock Models section)
+**Last updated:** 2026-11-05 (AWS prices re-verified via the AWS Price List API, us-east-1 on-demand, and the
+AWS Budgets, GuardDuty and Elastic Beanstalk pricing pages. Changed: Fargate ARM64 memory $0.003556 -> $0.00356 per
+GB-hour; RDS MySQL Single-AZ storage $0.23 -> $0.115 and backup storage $0.023 -> $0.095 per GB-month; additional
+AWS Budgets $0.02 -> $0.00 per budget per day; four t3 $/month figures recomputed at 730 hours. Every other AWS row
+was confirmed unchanged, except tiered or ambiguous rows kept at their old value (Route 53, SQS, Glacier retrieval,
+SageMaker ml.t3.medium inference, GuardDuty DNS query analysis). The Source Provider Pricing section (Gemini, OpenAI,
+Anthropic 1P) was not re-verified; each table keeps its own source and date. Bedrock rates live in `bedrock-pricing-cache.md`.
+Prior refresh, 2026-10-10: added the GPT-6 family from each model's AWS Bedrock model card and OpenAI's own API
+pricing page; see `shared/openai-on-bedrock.md`.)
 **Region:** us-east-1
 **Currency:** USD
 **Accuracy:** ±5-10% for infrastructure and source-provider services (sourced from public pricing pages and the AWS Price List API)
@@ -34,7 +29,7 @@ Bedrock Models section)
 | Per vCPU-hour (x86)        | $0.04048  |
 | Per GB memory-hour (x86)   | $0.004445 |
 | Per vCPU-hour (ARM64)      | $0.03238  |
-| Per GB memory-hour (ARM64) | $0.003556 |
+| Per GB memory-hour (ARM64) | $0.00356  |
 
 Linux, on-demand. ARM64 (Graviton) is ~20% below x86 per AWS Fargate pricing. Default dev-tier sizing is 0.5 vCPU.
 
@@ -81,10 +76,10 @@ Worker nodes billed separately as EC2 or Fargate.
 
 | Instance  | $/hour | $/month |
 | --------- | ------ | ------- |
-| t3.micro  | 0.0104 | 7.58    |
-| t3.small  | 0.0208 | 15.17   |
-| t3.medium | 0.0416 | 30.34   |
-| t3.large  | 0.0832 | 60.68   |
+| t3.micro  | 0.0104 | 7.59    |
+| t3.small  | 0.0208 | 15.18   |
+| t3.medium | 0.0416 | 30.37   |
+| t3.large  | 0.0832 | 60.74   |
 | m5.large  | 0.096  | 70.08   |
 | m5.xlarge | 0.192  | 140.16  |
 | c5.large  | 0.085  | 62.05   |
@@ -188,8 +183,8 @@ For Multi-AZ, approximately double these rates.
 
 | Storage             | Rate   |
 | ------------------- | ------ |
-| Per GB-month        | $0.23  |
-| Backup per GB-month | $0.023 |
+| Per GB-month        | $0.115 |
+| Backup per GB-month | $0.095 |
 
 ### DynamoDB (On-Demand)
 
@@ -487,7 +482,7 @@ Prices per 1M tokens. Source: [claude.com/pricing](https://claude.com/pricing), 
 
 ## Security Baseline
 
-**Per-unit rates verified via AWS Pricing API for us-east-1 on 2026-05-04.**
+**Per-unit rates verified via AWS Pricing API for us-east-1 on 2026-11-05.**
 **Config pricing effective 2025-09-01; Security Hub pricing effective 2026-03-01.**
 **Re-verify if migrating to a non-us-east-1 region or if any of these services re-prices.**
 
@@ -516,7 +511,7 @@ Prices per 1M tokens. Source: [claude.com/pricing](https://claude.com/pricing), 
 | Continuous configuration item      | $0.003 per item                        | Records every change                                                   |
 | Daily configuration item           | $0.012 per daily item                  | Once-per-day snapshot; cheaper for slow-changing accounts, less signal |
 | Small-startup typical (continuous) | ~$2–10/mo                              | 50–300 CIs/mo continuous                                               |
-| Source                             | AWS Pricing API, us-east-1, 2026-05-04 |                                                                        |
+| Source                             | AWS Pricing API, us-east-1, 2026-11-05 |                                                                        |
 
 ### AWS Security Hub (pricing effective 2026-03-01)
 
@@ -528,11 +523,11 @@ Prices per 1M tokens. Source: [claude.com/pricing](https://claude.com/pricing), 
 | Per-Lambda-function monitoring | $0.000434/hr                           | ~$0.32/mo per function                                               |
 | Per-container-image scanning   | $0.0002894/hr                          |                                                                      |
 | Small-startup typical          | ~$1–15/mo                              | After trial; Fargate-only startups pay nothing for the EC2 dimension |
-| Source                         | AWS Pricing API, us-east-1, 2026-05-04 |                                                                      |
+| Source                         | AWS Pricing API, us-east-1, 2026-11-05 |                                                                      |
 
 ### AWS Budgets
 
 | Metric                      | Rate                     | Notes                                      |
 | --------------------------- | ------------------------ | ------------------------------------------ |
 | First 2 budgets per account | $0.00                    | Free tier                                  |
-| Additional budgets          | $0.02 per budget per day | Tier 1 emits 1 budget, so effectively free |
+| Additional budgets          | $0.00 per budget per day | Tier 1 emits 1 budget, so effectively free |

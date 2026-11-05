@@ -1,6 +1,6 @@
 # Amazon Bedrock Pricing Cache
 
-**Last updated:** 2026-10-26 (fact re-verify 2026-10-26: Stable Image Core N. Virginia source note, Titan Text Embeddings v2 lifecycle check, GPT-6 Luna card re-verify incl. the 272K short/long boundary, Sonnet 5.5 Geo note; added Claude Sonnet 5.5 / Haiku 5.5 Global+Geo rows and DeepSeek V3.2 quick-ref from Bedrock pricing US East (Ohio) + model cards; Haiku 5.5 ≤100K / >100K long-context tiers + cache; lifecycle Status refresh — Claude Sonnet 4 → past EOL; Opus 4.1 → excluded; Llama 4 Maverick/Scout, Llama 3.3 70B, DeepSeek-R1/V3.1, Claude Sonnet 4.5 → legacy; Marengo 3.0 replacement scoped to non-Seoul; other rates unchanged from the 2026-10-05 pricing re-verify)
+**Last updated:** 2026-11-05 (full re-verify via the AWS Price List API (`AmazonBedrockFoundationModels`, `AmazonBedrock`), `bedrock` ListFoundationModels / GetFoundationModel, and the Bedrock model cards. Changed: Stable Image Ultra $0.08 -> $0.14 and Stable Diffusion 3.5 Large $0.065 -> $0.08 per image; DeepSeek v3.2 Sydney $0.6386/$1.9055 -> $0.64/$1.91; Nova on-demand cache-read cells N/A -> listed rates; context window 200K -> 1M for Claude Opus 4.8, Sonnet 4.6 and Opus 4.6; GPT-5.5 / GPT-5.4 runtime CRIS and long-context tier per their model cards. Lifecycle Status kept where the model card and the API disagree (Llama 4 Maverick/Scout, Llama 3.3 70B, DeepSeek-R1/V3.1, MiniMax M2). Non-AWS comparison prices were not re-verified. Prior refresh, 2026-10-26: Sonnet 5.5 / Haiku 5.5 rows and the lifecycle Status refresh)
 **Region:** us-east-1
 **Currency:** USD
 **Accuracy:** ±15-25% for AI/Bedrock models and services (sourced from public pricing pages)
@@ -81,10 +81,10 @@ See `vendored/ai/ai-model-lifecycle.md` for lifecycle details. **Do not recommen
 | Claude Opus 5.5 (London in-region) | anthropic.claude-opus-5-5 | Anthropic | 4.40 | 22.00 | 1M | premium | active (eu-west-2 runtime only; no Batch; verified 2026-10-03) |
 | Claude Opus 5.5 (GovCloud Geo)    | us.anthropic.claude-opus-5-5             | Anthropic | 4.80       | 24.00       | 1M      | premium   | active (us-gov-east-1/us-gov-west-1 only; no Batch; verified 2026-09-24) |
 | Claude Opus 5.5 (GovCloud Mantle) | anthropic.claude-opus-5-5                | Anthropic | 4.80       | 24.00       | 1M      | premium   | active (us-gov-west-1 Mantle only; no Batch; verified 2026-09-24)        |
-| Claude Opus 4.8                  | anthropic.claude-opus-4-8                | Anthropic | 5.00       | 25.00       | 200K    | premium   | active                                                       |
-| Claude Sonnet 4.6                | anthropic.claude-sonnet-4-6              | Anthropic | 3.00       | 15.00       | 200K    | flagship  | active                                                       |
+| Claude Opus 4.8                  | anthropic.claude-opus-4-8                | Anthropic | 5.00       | 25.00       | 1M      | premium   | active                                                       |
+| Claude Sonnet 4.6                | anthropic.claude-sonnet-4-6              | Anthropic | 3.00       | 15.00       | 1M      | flagship  | active                                                       |
 | Claude Sonnet 4.6 — Long Context | anthropic.claude-sonnet-4-6              | Anthropic | 3.00       | 15.00       | 200K+   | flagship  | active                                                       |
-| Claude Opus 4.6                  | anthropic.claude-opus-4-6-v1             | Anthropic | 5.00       | 25.00       | 200K    | premium   | active                                                       |
+| Claude Opus 4.6                  | anthropic.claude-opus-4-6-v1             | Anthropic | 5.00       | 25.00       | 1M      | premium   | active                                                       |
 | Claude Opus 4.6 — Long Context   | anthropic.claude-opus-4-6-v1             | Anthropic | 5.00       | 25.00       | 200K+   | premium   | active                                                       |
 | Claude Opus 4.5                  | —                                        | Anthropic | 5.00       | 25.00       | 200K    | premium   | active                                                       |
 | Claude Sonnet 4.5                | anthropic.claude-sonnet-4-5-20250929-v1:0 | Anthropic | 3.00       | 15.00       | 200K    | flagship  | legacy (EOL Apr 8, 2027)                                     |
@@ -120,8 +120,8 @@ See `vendored/ai/ai-model-lifecycle.md` for lifecycle details. **Do not recommen
 | GPT-5.6 Sol                      | openai.gpt-5.6-sol                       | OpenAI    | 4.40       | 22.00       | 272K    | frontier  | active (mantle in-region + runtime CRIS; 1M tier 8.80/33.00) |
 | GPT-5.6 Terra                    | openai.gpt-5.6-terra                     | OpenAI    | 2.20       | 13.20       | 272K    | flagship  | active (mantle in-region + runtime CRIS; 1M tier 4.40/19.80) |
 | GPT-5.6 Luna                     | openai.gpt-5.6-luna                      | OpenAI    | 0.22       | 1.32        | 272K    | fast      | active (mantle in-region + runtime CRIS; 1M tier 0.44/1.98)  |
-| GPT-5.5                          | openai.gpt-5.5                           | OpenAI    | 5.50       | 33.00       | 272K    | frontier  | active (mantle only; no 1M tier)                             |
-| GPT-5.4                          | openai.gpt-5.4                           | OpenAI    | 2.75       | 16.50       | 272K    | flagship  | active (mantle only; no 1M tier)                             |
+| GPT-5.5                          | openai.gpt-5.5                           | OpenAI    | 5.50       | 33.00       | 272K    | frontier  | active (mantle in-region + runtime CRIS; 1M tier 11.00/49.50) |
+| GPT-5.4                          | openai.gpt-5.4                           | OpenAI    | 2.75       | 16.50       | 272K    | flagship  | active (mantle in-region + runtime CRIS; 1M tier 5.50/24.75) |
 | Gemma 4 31B                      | google.gemma-4-31b                       | Google    | 0.14       | 0.40        | 256K    | mid       | active (Mantle only)                                         |
 | Gemma 4 26B-A4B                  | google.gemma-4-26b-a4b                   | Google    | 0.13       | 0.40        | 256K    | efficient | active (Mantle only)                                         |
 | Gemma 4 E2B                      | google.gemma-4-e2b                       | Google    | 0.04       | 0.08        | 128K    | budget    | active (Mantle only)                                         |
@@ -165,8 +165,8 @@ Active image generation models on Bedrock. Priced **per image** (not per token).
 
 | Model                      | Model ID                          | Price/image | Resolution | Tier     | Status |
 | -------------------------- | --------------------------------- | ----------- | ---------- | -------- | ------ |
-| Stable Image Ultra         | stability.stable-image-ultra-v1:1 | $0.08       | up to 4MP  | premium  | active |
-| Stable Diffusion 3.5 Large | stability.sd3-5-large-v1:0        | $0.065      | up to 1MP  | flagship | active |
+| Stable Image Ultra         | stability.stable-image-ultra-v1:1 | $0.14       | up to 4MP  | premium  | active |
+| Stable Diffusion 3.5 Large | stability.sd3-5-large-v1:0        | $0.08       | up to 1MP  | flagship | active |
 | Stable Image Core          | stability.stable-image-core-v1:1  | $0.04       | up to 1MP  | fast     | active |
 
 **Stable Image Core source:** $0.04 per generated image, on-demand, from the AWS Stability AI price table on [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/), which lists Stable Image Core for **US East (N. Virginia)** (verified 2026-10-25); the [Stable Image Core 1.0 model card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-stability-ai-stable-image-core-1-0.html) reads Active, Model EOL date N/A (verified 2026-10-26). Gemini's image-generation price for comparison: Gemini 3.1 Flash Image (Nano Banana 2) output is $30 per 1M image tokens — $0.0336 per 1K (1024×1024) image standard, $15 per 1M ($0.0168 per 1K image) batch — per [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing) (verified 2026-10-26); token-to-image equivalence with a 1MP Stable Image Core render is _unverified_.
@@ -288,7 +288,7 @@ Per [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) (DeepSeek)
 #### Other regions (examples on same page)
 
 - **Asia Pacific (Mumbai)**, **São Paulo**, **Jakarta**, **Tokyo**, **Stockholm**: DeepSeek v3.2 **$0.74 / $2.22** per 1M.
-- **Asia Pacific (Sydney)**: DeepSeek v3.1 **$0.5974 / $1.7304**; v3.2 **$0.6386 / $1.9055** (and **Priority** / **Flex** tiers listed separately on the page).
+- **Asia Pacific (Sydney)**: DeepSeek v3.1 **$0.5974 / $1.7304**; v3.2 **$0.64 / $1.91** (and **Priority** / **Flex** tiers listed separately on the page).
 
 ### OpenAI on Bedrock (GPT-6, GPT-5.6, and gpt-oss)
 
@@ -340,7 +340,7 @@ Regions (mantle): us-east-1 / us-east-2 for all five; us-west-2 additionally car
 | GPT-5.5       | 5.50       | 33.00       | —                | 0.55            |
 | GPT-5.4       | 2.75       | 16.50       | —                | 0.275           |
 
-#### Long context (1M) — GPT-5.6 only, 2.0x input / 1.5x output
+#### Long context (1M) — GPT-5.6, 2.0x input / 1.5x output
 
 | Model         | Input $/1M | Output $/1M |
 | ------------- | ---------- | ----------- |
@@ -348,19 +348,20 @@ Regions (mantle): us-east-1 / us-east-2 for all five; us-west-2 additionally car
 | GPT-5.6 Terra | 4.40       | 19.80       |
 | GPT-5.6 Luna  | 0.44       | 1.98        |
 
-A workload above 272K context must be priced at the long-context tier. GPT-5.5 and GPT-5.4 have no such tier, so
-their usable window is 272K. Global CRIS is published at OpenAI's standard list price (cost parity, GPT-5.6 only —
+A workload above 272K context must be priced at the long-context tier. GPT-5.5 and GPT-5.4 also list one on their
+model cards, applied to the whole request: GPT-5.5 11.00 / 49.50 (cache read 1.10) and GPT-5.4 5.50 / 24.75 (cache
+read 0.55), In-Region. Global CRIS is published at OpenAI's standard list price (cost parity, GPT-5.6 only —
 see `openai-on-bedrock.md`). GovCloud GPT-5.4 is 3.30 / 19.80.
 
-> **One source conflict.** These models are absent
-> from the AWS Price List API entirely: querying `AmazonBedrock` returns only `gpt-oss` and GPT OSS Safeguard, and
-> filtering on `GPT-5` or a `gpt-5` usage type returns zero rows (price-list publication 2026-08-04). An empty
+> **One source conflict.** These models have no commercial-Region rows
+> in the AWS Price List API: `AmazonBedrock` with `model` = `openai.gpt-5.4`, `openai.gpt-5.6-terra` or
+> `openai.gpt-5.6-luna` returns only `us-gov-west-1` rows (checked 2026-11-05). An empty
 > price-list result is **not** evidence the model is unavailable. (An earlier revision also
 > flagged the AWS News Blog's Luna 0.20 / 1.20 as conflicting; it is the Global CRIS rate, not an error.)
 
 **Prompt caching (GPT-5.6 only):** cached input read at a 90% discount, cache write at 1.25x uncached input, minimum
 1,024-token prefix, up to 4 breakpoints, ≥30-minute retention. Cached input is exempt from the input-TPM quota.
-GPT-5.5 and GPT-5.4 do not list prompt caching support.
+GPT-5.5 and GPT-5.4 list implicit prompt caching only (Responses API; no cache-write rate).
 
 #### Open-weight gpt-oss
 
@@ -535,10 +536,10 @@ Per 1M tokens. **Nova 2 Omni** and **Nova 2 Pro** are **Preview**. Image column 
 
 | Model                | Input $/1M | Cache read $/1M | Output $/1M |
 | -------------------- | ---------- | --------------- | ----------- |
-| Amazon Nova 2.0 Lite | N/A        | N/A             | N/A         |
-| Amazon Nova Micro    | 0.035      | N/A             | 0.14        |
-| Amazon Nova Lite     | 0.06       | N/A             | 0.24        |
-| Amazon Nova Pro      | 0.80       | N/A             | 3.20        |
+| Amazon Nova 2.0 Lite | 0.33       | 0.0825          | 2.75        |
+| Amazon Nova Micro    | 0.035      | 0.00875         | 0.14        |
+| Amazon Nova Lite     | 0.06       | 0.015           | 0.24        |
+| Amazon Nova Pro      | 0.80       | 0.20            | 3.20        |
 
 #### Built-in tools — Web grounding (US East Ohio)
 
