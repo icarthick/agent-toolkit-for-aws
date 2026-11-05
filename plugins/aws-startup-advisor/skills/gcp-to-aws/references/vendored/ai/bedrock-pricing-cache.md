@@ -86,7 +86,7 @@ See `vendored/ai/ai-model-lifecycle.md` for lifecycle details. **Do not recommen
 | Claude Sonnet 4.6 — Long Context | anthropic.claude-sonnet-4-6              | Anthropic | 3.00       | 15.00       | 200K+   | flagship  | active                                                       |
 | Claude Opus 4.6                  | anthropic.claude-opus-4-6-v1             | Anthropic | 5.00       | 25.00       | 200K    | premium   | active                                                       |
 | Claude Opus 4.6 — Long Context   | anthropic.claude-opus-4-6-v1             | Anthropic | 5.00       | 25.00       | 200K+   | premium   | active                                                       |
-| Claude Opus 4.5                  | —                                        | Anthropic | 5.00       | 25.00       | 200K    | premium   | active                                                       |
+| Claude Opus 4.5                  | anthropic.claude-opus-4-5-20251101-v1:0 | Anthropic | 5.00       | 25.00       | 200K    | premium   | active                                                       |
 | Claude Sonnet 4.5                | anthropic.claude-sonnet-4-5-20250929-v1:0 | Anthropic | 3.00       | 15.00       | 200K    | flagship  | legacy (EOL Apr 8, 2027)                                     |
 | Claude Sonnet 4.5 — Long Context | anthropic.claude-sonnet-4-5-20250929-v1:0 | Anthropic | 6.00       | 22.50       | 200K+   | flagship  | legacy (EOL Apr 8, 2027)                                     |
 | Claude Haiku 4.5                 | anthropic.claude-haiku-4-5-20251001-v1:0 | Anthropic | 1.00       | 5.00        | 200K    | fast      | active                                                       |
