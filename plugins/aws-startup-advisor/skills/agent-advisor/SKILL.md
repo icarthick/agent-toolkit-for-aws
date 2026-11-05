@@ -162,15 +162,18 @@ Stage 3 reads gcp-to-aws artifacts ONLY via this recorded path, never by re-glob
 | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `references/vendored/dsl/INTERPRETER.md`             | Vendored DSL execution contract (interpreter loop + gate protocol)                                             |
 | `references/phases/intake/intake.md`                 | Entry point + technical background + open context                                                              |
+| `references/phases/add-capabilities/add-capabilities.md` | Sidebar branch: add AgentCore services to an agent already on AWS (no runtime scoring)                         |
 | `references/phases/discover/discover.md`             | Lightweight code detection                                                                                     |
 | `references/phases/clarify/clarify.md`               | Clarify orchestrator + answer mapping to scoring keys                                                          |
 | `references/phases/clarify/clarify-technical.md`     | Technical-background question wording                                                                          |
 | `references/phases/clarify/clarify-business.md`      | Business-background question wording                                                                           |
+| `references/phases/model-recommend/model-recommend.md` | Bedrock model + API path selection (model-selection authority)                                                 |
 | `references/phases/confirm/confirm.md`               | Winner-specific follow-ups                                                                                     |
 | `references/phases/design/design.md`                 | Assemble recommendation; Migrate handoff branch                                                                |
 | `references/phases/estimate/estimate.md`             | Coarse cost magnitude                                                                                          |
 | `references/phases/generate/generate.md`             | Layered recommendation doc + scaffolding                                                                       |
 | `references/phases/migration-plan/migration-plan.md` | Stage 2: full migration plan via the sibling gcp-to-aws engine                                                 |
+| `references/phases/poc/poc.md`                       | Stage 3: deployment plan + deployable POC after Gate 2 (any winning runtime)                                   |
 | `references/decision-refs/temporal.md`               | Temporal rules: Tier 1/2 tables, adapter, runbooks, commercials (consumed by discover/clarify/design/generate) |
 | `references/decision-refs/poc-shapes.md`             | Per-runtime POC deploy shapes (ECS/EKS/Lambda/MicroVMs/Temporal)                                               |
 | `references/decision-refs/*.md`                      | Runtime service cards, model defaults, freshness                                                               |
