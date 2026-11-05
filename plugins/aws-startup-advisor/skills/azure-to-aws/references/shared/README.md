@@ -11,7 +11,7 @@ here — see `references/vendored/README.md`.
 | ------------------------------ | ----------------------------------------------------------------------------- |
 | `schema-discover-azure.md`     | `azure-resource-inventory.json` + `azure-resource-clusters.json` shapes       |
 | `schema-preferences.md`        | `preferences.json` shape and the assumption-sheet disposition vocabulary      |
-| `schema-workshop-scenarios.md` | `scenarios/index.json` shape and the workshop preference-patch contract       |
+| `schema-workshop-scenarios.md` | `scenarios/index.json` and `scenarios/scenario-NNN.json` manifest shapes      |
 | `arm-type-canonicalization.md` | the `azurerm_* → Microsoft.*` table, the traps, and `azure_id` reconstruction |
 | `extract-terraform.md`         | Terraform extraction rules, per-type attributes, edges, secret boundary       |
 

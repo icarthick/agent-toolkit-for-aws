@@ -326,7 +326,21 @@
       },
       "scenarios/index.json": {
         "shape": "skills/azure-to-aws/references/shared/schema-workshop-scenarios.md",
-        "root_heading": "scenarios/index.json"
+        "root_heading": "scenarios/index.json",
+        "ignore_headings": [
+          "scenarios/scenario-NNN.json"
+        ]
+      },
+      "scenarios/scenario-NNN.json": {
+        "shape": "skills/azure-to-aws/references/shared/schema-workshop-scenarios.md",
+        "root_heading": "scenarios/scenario-NNN.json",
+        "ignore_headings": [
+          "scenarios/index.json"
+        ],
+        "open_paths": [
+          "preferences_subset"
+        ],
+        "_open_paths_why": "preferences_subset maps the dot-path knobs that differ from the baseline (workshop-refresh.md \u00a7 6 step 4; workshop-invariants.md \u00a7 4). The example shows two; the sheet also edits region, cost optimization and CPU architecture, so the keys are the open knob vocabulary. The manifest links complete typed preference snapshots."
       },
       "scenarios/scenario-NNN.preferences.json": {
         "shape": "skills/azure-to-aws/references/shared/schema-preferences.md",

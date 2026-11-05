@@ -1172,10 +1172,9 @@ def test_azure_user_stated_db_size_is_optional(tmp_path: Path):
 
 
 def test_azure_workshop_index_records_capture_state(tmp_path: Path):
-    """Review finding on #385/#387: the index example omitted the fields workshop-refresh
-    writes (inventory_fingerprint, active_scenario_id, max_scenarios), so baseline capture
-    and Apply/resume failed. A simple active_scenario_id resume and a fuller resume that
-    appends a new scenario, plus omitting the optional fields entirely, must all stay valid."""
+    """workshop-refresh.md § Baseline capture writes a flat index whose entries carry
+    `source` and `manifest`. Its example, a resume that appends a workshop scenario, and
+    omitting the optional capture fields must stay valid; an unknown key is rejected."""
     doc = PLUGIN_ROOT / "skills/azure-to-aws/references/shared/schema-workshop-scenarios.md"
     index = _doc_example(doc, "scenarios/index.json")
 
@@ -1184,20 +1183,15 @@ def test_azure_workshop_index_records_capture_state(tmp_path: Path):
                             "--skill", "azure-to-aws", "--no-baseline", "--json"))
 
     assert run("baseline", index) == set(), index
-    active = json.loads(json.dumps(index))
-    active["active_scenario_id"] = "scenario-002"
-    assert run("active", active) == set()
+    assert index["scenarios"][0]["manifest"] == "scenarios/scenario-001.json"
     resumed = json.loads(json.dumps(index))
     resumed["active_scenario_id"] = "scenario-002"
     resumed["scenarios"].append({
         "scenario_id": "scenario-002",
         "label": "Graviton",
         "created_at": "2026-10-02T00:00:00Z",
-        "preference_patch": {},
-        "totals": {"non_optimized_monthly": 1, "right_sized_monthly": 1},
-        "pricing_source": "cached",
-        "design_snapshot": "scenarios/scenario-002/aws-design.json",
-        "estimate_snapshot": "scenarios/scenario-002/estimation-infra.json",
+        "source": "workshop",
+        "manifest": "scenarios/scenario-002.json",
     })
     assert run("resume", resumed) == set()
     omitted = json.loads(json.dumps(index))
@@ -1208,6 +1202,51 @@ def test_azure_workshop_index_records_capture_state(tmp_path: Path):
     bad = json.loads(json.dumps(index))
     bad["invented"] = 1
     assert ("UNKNOWN_KEY", "invented") in run("bad", bad)
+    nested = json.loads(json.dumps(index))
+    nested["scenarios"][0]["design_snapshot"] = "scenarios/scenario-001/aws-design.json"
+    assert ("UNKNOWN_KEY", "scenarios[0].design_snapshot") in run("nested", nested)
+
+
+def test_azure_scenario_manifest_has_a_contract(tmp_path: Path):
+    """workshop-refresh.md § 6 and estimate-assemble.md § Scenario reconciliation write
+    scenarios/scenario-NNN.json. The manifest is validated: the gate-written fields and a
+    nullable recommendation_outcome are accepted, and an unknown summary key is rejected."""
+    doc = PLUGIN_ROOT / "skills/azure-to-aws/references/shared/schema-workshop-scenarios.md"
+    manifest = _doc_example(doc, "scenarios/scenario-NNN.json")
+    manifest["estimation_summary"]["complexity_tier"] = "medium"
+    manifest["estimation_summary"]["pricing_source"] = "cached"
+    manifest["estimation_summary"]["recommendation_outcome"] = "go"
+
+    def run(name, data):
+        return _errors(_run("--run-dir", str(_write_run(tmp_path, name, "scenarios/scenario-002.json", data)),
+                            "--skill", "azure-to-aws", "--no-baseline", "--json"))
+
+    assert run("example", manifest) == set(), manifest
+    stale = json.loads(json.dumps(manifest))
+    stale["stale"] = True
+    stale["stale_reason"] = "data.db_cutover changed at the decision gate after this scenario was priced"
+    stale["corrected_at_gate"] = "data.db_cutover"
+    assert run("stale", stale) == set()
+    for value in ("conditional_go", None):
+        ok = json.loads(json.dumps(manifest))
+        ok["estimation_summary"]["recommendation_outcome"] = value
+        assert run(str(value), ok) == set()
+    minimal = json.loads(json.dumps(manifest))
+    for key in ("preferences_fingerprint", "aws_design_fingerprint", "stale", "stale_reason", "corrected_at_gate"):
+        del minimal[key]
+    del minimal["estimation_summary"]["recommendation_outcome"]
+    assert run("minimal", minimal) == set()
+    bad = json.loads(json.dumps(manifest))
+    bad["estimation_summary"]["invented"] = 1
+    errors = run("bad", bad)
+    assert ("UNKNOWN_KEY", "estimation_summary.invented") in errors
+    assert "NO_CONTRACT" not in {c for c, _ in errors}
+    missing = json.loads(json.dumps(manifest))
+    del missing["estimation_summary"]["aws_monthly_balanced"]
+    assert ("MISSING_REQUIRED", "estimation_summary.aws_monthly_balanced") in run("missing", missing)
+    tier = json.loads(json.dumps(manifest))
+    tier["estimation_summary"]["pricing_source"] = "live"
+    assert ("ENUM_VIOLATION", "estimation_summary.pricing_source") in run("tier", tier)
 
 
 def test_gcp_inventory_estimate_accepts_the_cache_category(tmp_path: Path):
