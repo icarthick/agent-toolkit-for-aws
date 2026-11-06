@@ -447,3 +447,87 @@ def test_decision_fixture_still_passes() -> None:
         mode="decision",
     )
     assert errors == [], errors
+
+
+def _decision_errors_for_state(tmp_path: Path, mutate) -> list[str]:
+    """Validate the decision fixture copied into tmp_path after mutate(run_dir)."""
+    import shutil
+
+    validator = _load()
+    source = FIXTURES / "gcp-decision-gate" / "after-decide-complete"
+    run_dir = tmp_path / source.name
+    shutil.copytree(source, run_dir)
+    mutate(run_dir)
+    html = (run_dir / "decision-report.html").read_text(encoding="utf-8")
+    estimate = json.loads((run_dir / "estimation-infra.json").read_text(encoding="utf-8"))
+    return validator.validate_report(
+        html,
+        estimate,
+        None,
+        None,
+        migration_dir=run_dir,
+        mode="decision",
+    )
+
+
+def _set_generate(status: str):
+    def mutate(run_dir: Path) -> None:
+        path = run_dir / ".phase-status.json"
+        state = json.loads(path.read_text(encoding="utf-8"))
+        state["phases"]["generate"] = status
+        path.write_text(json.dumps(state, indent=2), encoding="utf-8")
+
+    return mutate
+
+
+def _phase_status_errors(errors: list[str]) -> list[str]:
+    return [err for err in errors if ".phase-status.json" in err]
+
+
+def test_decision_mode_generate_completed_fails(tmp_path: Path) -> None:
+    errors = _decision_errors_for_state(tmp_path, _set_generate("completed"))
+    assert any("'completed'" in err for err in _phase_status_errors(errors)), errors
+
+
+def test_decision_mode_generate_in_progress_fails(tmp_path: Path) -> None:
+    errors = _decision_errors_for_state(tmp_path, _set_generate("in_progress"))
+    assert any("'in_progress'" in err for err in _phase_status_errors(errors)), errors
+
+
+def test_decision_mode_empty_phase_status_fails(tmp_path: Path) -> None:
+    def mutate(run_dir: Path) -> None:
+        (run_dir / ".phase-status.json").write_text("   \n", encoding="utf-8")
+
+    errors = _decision_errors_for_state(tmp_path, mutate)
+    assert any("corrupted" in err for err in _phase_status_errors(errors)), errors
+
+
+def test_decision_mode_invalid_phase_status_fails(tmp_path: Path) -> None:
+    def mutate(run_dir: Path) -> None:
+        (run_dir / ".phase-status.json").write_text('{"phases": {', encoding="utf-8")
+
+    errors = _decision_errors_for_state(tmp_path, mutate)
+    assert any("corrupted" in err for err in _phase_status_errors(errors)), errors
+
+
+def test_decision_mode_missing_phase_status_passes(tmp_path: Path) -> None:
+    def mutate(run_dir: Path) -> None:
+        (run_dir / ".phase-status.json").unlink()
+
+    errors = _decision_errors_for_state(tmp_path, mutate)
+    assert errors == [], errors
+
+
+def test_decision_mode_retained_execution_pack_with_generate_pending_passes(
+    tmp_path: Path,
+) -> None:
+    # Workshop re-entry keeps a previous cycle's execution pack on disk and
+    # resets phases.generate to "pending"; that state is pre-execution.
+    def mutate(run_dir: Path) -> None:
+        _set_generate("pending")(run_dir)
+        (run_dir / "terraform").mkdir()
+        (run_dir / "terraform" / "main.tf").write_text("# previous cycle\n", encoding="utf-8")
+        (run_dir / "generation-infra.json").write_text("{}\n", encoding="utf-8")
+
+    errors = _decision_errors_for_state(tmp_path, mutate)
+    assert errors == [], errors

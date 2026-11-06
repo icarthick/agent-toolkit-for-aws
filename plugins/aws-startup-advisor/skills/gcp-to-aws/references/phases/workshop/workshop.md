@@ -21,10 +21,61 @@
 ## Entry
 
 1. Do **not** re-run Discover / live CLI / Terraform parse.
-2. If `phases.generate` is `completed`, require Estimate re-entry confirm and reset
-   generate (and later) to `pending` before refreshing.
-3. Set `phases.workshop` to `"in_progress"`. Do **not** change `current_phase`
-   (leave at `"estimate"` until exit/decline).
+2. **Stale Generate/decide guard (mandatory, single authoritative point).** It
+   runs before any other Entry step or Loop branch, so it covers every path
+   into the workshop (Apply & reprice, Compare scenarios, or exiting without
+   ever reaching `workshop-refresh.md`). `workshop-refresh.md` relies on it and
+   does not re-check.
+
+   Read `$MIGRATION_DIR/.phase-status.json`. The guard fires when ANY of:
+
+   1. `phases.generate` is `"completed"`;
+   2. `phases.generate` is `"in_progress"` (an interrupted Generate);
+   3. `current_phase == "generate"` with `run_mode` set (Decision-gate option
+      C was taken; `phases.generate` can still be `"pending"` when Generate was
+      never entered, which is why this condition reads `current_phase`);
+   4. `current_phase == "complete"` with `run_mode` set (a resolved decide or
+      decide-and-execute state, e.g. the decide-complete resume).
+
+   On fire, tell the user the previous decision/execution state is stale and
+   ask them to confirm re-entering the workshop (the same confirmation
+   `estimate.md` § Completion Handoff Gate requires before Estimate re-runs
+   over Generate output). On confirm, set `phases.generate` (the backbone
+   phase downstream of Estimate) back to `"pending"` in `.phase-status.json`
+   (read-merge-write), then run step 3.
+
+   **Do NOT delete anything Generate wrote.** `terraform/`, `scripts/`,
+   `ai-migration/`, `generation-*.json`, `MIGRATION_GUIDE.md`, `README.md` and
+   `migration-report.html` stay untouched: never modified, deleted or archived
+   by workshop re-entry. Generate tells users to copy
+   `terraform/terraform.tfvars.example` to `terraform.tfvars` and fill it in
+   (`generate-artifacts-docs.md` fill-in checklist), and customer-edited files
+   keep their generated filenames, so no filename-based rule can tell a
+   disposable generated file from a customer-edited one. Design/Estimate
+   artifacts are overwritten by the reprice; the previous execution pack is
+   not.
+
+   Reaching the Decision gate with that pack still on disk is the supported
+   state: `validate-migration-report.py --mode decision` decides
+   "pre-execution" from `.phase-status.json` `phases.generate` (reset to
+   `"pending"` above), not from whether `terraform/` or `generation-*.json`
+   exist (see `references/shared/validate-migration-report.md`). The next
+   accepted Generate run overwrites the pack in its own course.
+
+   If the user does NOT confirm, **stop** here: do not set
+   `phases.workshop`, patch preferences or re-run Design/Estimate. The
+   execution pack and the decide/execute state are left exactly as they were.
+3. **Normalize `current_phase`/`run_mode` on every accepted re-entry
+   (mandatory).** Whenever step 2 fired and the user confirmed, whichever of
+   its four conditions fired, also set `current_phase` to `"estimate"` and
+   remove the `run_mode` key (read-merge-write; remove it, do not set it to
+   null). This returns the run to the pre-gate state: a session resumed
+   after the workshop then matches the `workshop` row in `SKILL.md` § State
+   Machine (`current_phase == "estimate"`) and reaches the Decision gate,
+   instead of the `generate`, decide-complete or legacy-generate rows. When
+   step 2 did not fire, leave `current_phase` and `run_mode` unchanged.
+4. Set `phases.workshop` to `"in_progress"`. Do **not** change `current_phase`
+   further — sidebars never own it (it stays `"estimate"` until exit/decline).
 
 ## Loop
 

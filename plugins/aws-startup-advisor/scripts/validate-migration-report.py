@@ -5,6 +5,11 @@ Checks required section IDs, TOC anchor integrity, minimum appendix content,
 artifact-derived cost markers, and customer-facing readability rules. Exit 0
 on PASS, 1 on FAIL.
 
+With --mode decision and --migration-dir, also checks that the run is
+pre-execution for the current cycle: <migration-dir>/.phase-status.json must
+not record phases.generate as "completed" or "in_progress" (a missing file
+passes; an empty or invalid file fails).
+
 Usage:
   python3 validate-migration-report.py /path/to/migration-report.html
   python3 validate-migration-report.py report.html \\
@@ -2165,6 +2170,45 @@ def _validate_decision_core_render(
     return errors
 
 
+def _validate_decision_phase_status(migration_dir: Path) -> list[str]:
+    """Decision mode is pre-execution for the CURRENT cycle only.
+
+    The signal is .phase-status.json's own phases.generate value, not whether
+    terraform/ or generation-*.json exist: workshop re-entry keeps a previous
+    cycle's execution pack on disk and resets phases.generate to "pending".
+    A missing status file passes (no run tracked state here). A file that
+    exists but is empty or not valid JSON fails: an unreadable state file is
+    corruption, not evidence of a pre-execution decision.
+    """
+    phase_path = migration_dir / ".phase-status.json"
+    if not phase_path.is_file():
+        return []
+    try:
+        phase_text = phase_path.read_text(encoding="utf-8")
+        if not phase_text.strip():
+            raise json.JSONDecodeError("empty file", phase_text, 0)
+        phase = json.loads(phase_text)
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        return [
+            "decision mode: .phase-status.json exists but could not be "
+            f"read/parsed ({exc}) — state corrupted. Reconstruct it per the "
+            "skill's State Validation (invalid JSON) before rendering the "
+            "decision report; an unreadable state file is not evidence of a "
+            "pre-execution decision"
+        ]
+    phases = phase.get("phases") if isinstance(phase, dict) else None
+    generate_status = phases.get("generate") if isinstance(phases, dict) else None
+    if generate_status in ("completed", "in_progress"):
+        return [
+            "decision mode: .phase-status.json phases.generate is "
+            f"{generate_status!r} — this cycle already went through Generate; "
+            "decision mode is pre-execution only for the current cycle (a "
+            "previous cycle's execution pack may legitimately remain on disk "
+            "after a workshop reprice)"
+        ]
+    return []
+
+
 def validate_report(
     html: str,
     estimation_infra: dict | None = None,
@@ -2195,6 +2239,8 @@ def validate_report(
                     f'decision mode forbids <section id="{sid}"> — the decision report '
                     "has no appendices; the full migration report (Generate) carries them"
                 )
+        if migration_dir is not None:
+            errors.extend(_validate_decision_phase_status(migration_dir))
 
     if require_toc:
         if not _toc_hrefs(html):
@@ -2372,7 +2418,9 @@ def main() -> int:
         choices=["full", "decision", "ai_only"],
         default="full",
         help="full = migration-report.html (default); decision = decision-report.html "
-        "written at the post-Estimate Decision gate (exec sections + CTA, no appendices)",
+        "written at the post-Estimate Decision gate (exec sections + CTA, no appendices; "
+        "with --migration-dir, .phase-status.json phases.generate must not be "
+        "completed or in_progress)",
     )
     args = parser.parse_args()
 
