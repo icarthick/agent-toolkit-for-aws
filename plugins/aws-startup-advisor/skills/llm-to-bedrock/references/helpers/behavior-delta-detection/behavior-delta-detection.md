@@ -118,6 +118,7 @@ After asking the user (or applying an `impl_path` default, or running the fallba
 - `"skill_default"` — `impl_path` delta, default from skill reference.
 - `"fallback_question"` — fallback rule fired and user picked an option from the `fallback` set.
 - `"ambiguous_user_answer_recommended"` — user's answer didn't map after one clarification; rewriter fell back to (Recommended) and recorded both attempts in `user_verbatim_answer`.
+- `"missing_confirmation_safe_default"` — fallback rule fired with no confirmed decision; rewriter left the original code in place with a TODO comment (see "Fallback rule" below).
 
 ---
 
