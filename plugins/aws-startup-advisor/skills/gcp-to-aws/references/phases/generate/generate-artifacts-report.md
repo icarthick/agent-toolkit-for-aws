@@ -191,7 +191,7 @@ Show this section when `aws-design-ai.json` → `ai_architecture.honest_assessme
 
 **D.3 — Model Mappings:**
 
-- Model mappings (GCP model to AWS Bedrock model)
+- Model mappings (GCP model to Amazon Bedrock model)
 - AI cost estimates
 
 **D.4 — Migration approach:**
