@@ -822,7 +822,8 @@ def test_scoring_result_schema_scored_only():
     jsonschema.Draft7Validator.check_schema(schema)
     V = jsonschema.Draft7Validator(schema)
     _unit = {"verdict": "ecs", "scores": {"ecs": 10}, "eliminated": {},
-             "deployment_model": None, "agentcore_services": [],
+             "deployment_model": None, "agentcore_compute_type": None,
+             "agentcore_services": [],
              "model_recommendation": {"model": "m", "reasoning": "r"},
              "deferred_verification_requirements": [],
              "recommendation_status": "final"}
@@ -1073,7 +1074,8 @@ def test_schema_validates_each_units_value():
         return
     V = jsonschema.Draft7Validator(schema)
     bare = {"verdict": "ecs", "scores": {"ecs": 10}, "eliminated": {},
-            "deployment_model": None, "agentcore_services": [],
+            "deployment_model": None, "agentcore_compute_type": None,
+            "agentcore_services": [],
             "model_recommendation": {"model": "m", "reasoning": "r"},
              "deferred_verification_requirements": [],
              "recommendation_status": "final",
@@ -1081,6 +1083,40 @@ def test_schema_validates_each_units_value():
     assert V.is_valid({**bare, "units": {"solo": bare}}), "valid per-unit value must validate"
     assert not V.is_valid({**bare, "units": {"broken": {}}}), \
         "a units value missing scored fields must be rejected"
+
+
+def test_schema_agentcore_compute_type_closed_and_required():
+    # scoring.py always emits agentcore_compute_type (microvms | instances | null) and Design
+    # copies it verbatim, so the schema requires it with that closed vocabulary at the top
+    # level and in every units value.
+    import json
+    schema = json.loads((pathlib.Path(__file__).parent.parent
+                         / "scripts" / "schemas" / "scoring-result.json").read_text())
+    assert "agentcore_compute_type" in schema["required"]
+    assert "agentcore_compute_type" in schema["$defs"]["scoredUnit"]["required"]
+    try:
+        import jsonschema
+    except ImportError:
+        return
+    V = jsonschema.Draft7Validator(schema)
+    unit = {"verdict": "agentcore", "scores": {"agentcore": 10}, "eliminated": {},
+            "deferred_verification_requirements": [], "recommendation_status": "final",
+            "deployment_model": "harness", "agentcore_compute_type": "microvms",
+            "agentcore_services": [], "assumptions_used": [], "warnings": []}
+    for value in ("microvms", "instances", None):
+        u = {**unit, "agentcore_compute_type": value}
+        assert V.is_valid({**u, "units": {"solo": u}}), f"{value!r} must validate"
+    for value in ("gpu", "", "MicroVMs"):
+        bad = {**unit, "agentcore_compute_type": value}
+        assert not V.is_valid({**bad, "units": {"solo": unit}}), \
+            f"top-level agentcore_compute_type {value!r} must be rejected"
+        assert not V.is_valid({**unit, "units": {"solo": bad}}), \
+            f"per-unit agentcore_compute_type {value!r} must be rejected"
+    missing = {k: v for k, v in unit.items() if k != "agentcore_compute_type"}
+    assert not V.is_valid({**missing, "units": {"solo": unit}}), \
+        "a result without top-level agentcore_compute_type must be rejected"
+    assert not V.is_valid({**unit, "units": {"solo": missing}}), \
+        "a units value without agentcore_compute_type must be rejected"
 
 
 def test_scope_gate_after_temporal_activity_classification():

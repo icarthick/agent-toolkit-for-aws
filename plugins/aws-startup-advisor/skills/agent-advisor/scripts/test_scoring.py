@@ -256,6 +256,38 @@ def test_score_units_rejects_evidence_from_another_run(tmp_path):
         score_units.main([str(answers_path)])
 
 
+def test_score_units_output_validates_against_scoring_result_schema(tmp_path, capsys):
+    # Real engine output, not a hand-built fixture, must satisfy the published contract:
+    # one unit per agentcore_compute_type value (instances, microvms via co_recommend, null).
+    jsonschema = pytest.importorskip("jsonschema")
+    schema = json.loads(
+        (pathlib.Path(scoring.__file__).parent / "schemas" / "scoring-result.json").read_text()
+    )
+    answers_path = tmp_path / "answers.json"
+    answers_path.write_text(json.dumps({
+        "entry_point": "migrate",
+        "system": {},
+        "primary_unit": "long-agent",
+        "units": {
+            "long-agent": {"workload_class": "agent_session", "session_duration": "over_8hr"},
+            "short-agent": {"workload_class": "agent_session",
+                            "session_duration": "under_15min"},
+            "resume-agent": {"workload_class": "agent_session",
+                             "session_duration": "15min_to_8hr",
+                             "idle_resume": "process_level", "session_state": "hitl",
+                             "ops_preference": "moderate"},
+        },
+    }))
+
+    assert score_units.main([str(answers_path)]) == 0
+    out = json.loads(capsys.readouterr().out)
+    jsonschema.Draft7Validator(schema).validate(out)
+    assert out["agentcore_compute_type"] == "instances"
+    assert {u["agentcore_compute_type"] for u in out["units"].values()} == {
+        "instances", "microvms", None,
+    }
+
+
 def test_compute_scores_uses_affinity_and_neutral_default():
     profiles = [
         {**_minimal("agentcore"), "affinities": {
