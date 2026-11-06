@@ -2,7 +2,7 @@
 
 **Standalone flow** — used when ONLY `ai-workload-profile.json` exists (no
 `azure-resource-inventory.json`, no billing artifacts), i.e. an app-code-only run.
-Infrastructure stays on Azure; only AI/LLM calls move to AWS Bedrock. Routed here by
+Infrastructure stays on Azure; only AI/LLM calls move to Amazon Bedrock. Routed here by
 `clarify.md` Step 0 (Migration Type Detection) — it is NOT a `_fragments` entry; `clarify.md`
 reads this file directly and follows it to completion, skipping the normal infra flow.
 
@@ -22,7 +22,7 @@ wording are Azure-swapped (Azure OpenAI, no Gemini).
 ## Step 1: Present the AI-only detection summary
 
 > **AI-only migration detected.** Your project has AI workloads but no infrastructure artifacts
-> (no Terraform/Bicep/ARM). I'll migrate your AI/LLM calls to AWS Bedrock while your
+> (no Terraform/Bicep/ARM). I'll migrate your AI/LLM calls to Amazon Bedrock while your
 > infrastructure stays on Azure.
 >
 > **AI source:** [`summary.ai_source`] · **Models:** [`models[].model_id`] ·

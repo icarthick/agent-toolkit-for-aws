@@ -226,7 +226,7 @@ Never state either number without stating the inference option it belongs to.
 
 ### GPT-6 Astra / Sol / Luna / 6.1 Sol — short context (≤272K)
 
-Read off each model's own AWS Bedrock model card (fetched 2026-10-10) and OpenAI's own pricing page
+Read off each model's own Amazon Bedrock model card (fetched 2026-10-10) and OpenAI's own pricing page
 ([developers.openai.com/api/docs/pricing](https://developers.openai.com/api/docs/pricing)). Global CRIS rates
 equal OpenAI's own standard rates (stated explicitly on every GPT-6 model card); In-Region and Geo/US-CRIS carry
 the familiar 10% premium.

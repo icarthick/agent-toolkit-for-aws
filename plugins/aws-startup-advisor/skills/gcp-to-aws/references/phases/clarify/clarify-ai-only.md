@@ -1,6 +1,6 @@
 # AI-Only Migration — Clarify Requirements
 
-**Standalone flow** — Used when ONLY `ai-workload-profile.json` exists (no infrastructure or billing artifacts). Infrastructure stays on GCP; only AI/LLM calls move to AWS Bedrock.
+**Standalone flow** — Used when ONLY `ai-workload-profile.json` exists (no infrastructure or billing artifacts). Infrastructure stays on GCP; only AI/LLM calls move to Amazon Bedrock.
 
 Produces the same `preferences.json` output but with `design_constraints` limited to region and compliance, `startup_constraints` populated, and `ai_constraints` fully populated. Questions are presented in **two progressive batches** with an intermediate save — partial answers persist across sessions.
 
@@ -37,7 +37,7 @@ Check `$MIGRATION_DIR/` for existing state:
 ## Step 1: Present AI Detection Summary
 
 > **AI-Only Migration Detected**
-> Your project has AI workloads but no infrastructure artifacts (Terraform, billing). I'll focus on migrating your AI/LLM calls to AWS Bedrock while your infrastructure stays on GCP.
+> Your project has AI workloads but no infrastructure artifacts (Terraform, billing). I'll focus on migrating your AI/LLM calls to Amazon Bedrock while your infrastructure stays on GCP.
 >
 > **AI source:** [from `summary.ai_source`]
 > **Models detected:** [from `models[].model_id`]

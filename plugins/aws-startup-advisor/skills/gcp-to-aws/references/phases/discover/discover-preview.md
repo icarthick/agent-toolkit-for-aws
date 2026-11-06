@@ -29,7 +29,7 @@ END
 ## AI-Only Route (Steps 1A–6A)
 
 > Used when only `ai-workload-profile.json` exists — no Terraform, no billing data.
-> Infrastructure stays on GCP; only AI/LLM calls move to AWS Bedrock.
+> Infrastructure stays on GCP; only AI/LLM calls move to Amazon Bedrock.
 
 ### Step 1A: Compute AI complexity_signal
 
