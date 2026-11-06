@@ -26,7 +26,14 @@
     },
     "scoredUnit": {
       "type": "object",
-      "required": ["verdict", "scores", "eliminated", "deferred_verification_requirements", "recommendation_status"],
+      "required": [
+        "verdict",
+        "scores",
+        "eliminated",
+        "deferred_verification_requirements",
+        "recommendation_status",
+        "agentcore_compute_type"
+      ],
       "properties": {
         "verdict": {
           "enum": ["agentcore", "lambda_microvms", "ecs", "eks", "lambda", "co_recommend", "no_viable_runtime"]
@@ -39,6 +46,7 @@
         },
         "recommendation_status": { "enum": ["provisional", "final"] },
         "deployment_model": { "type": ["string", "null"], "enum": ["harness", "framework_on_runtime", null] },
+        "agentcore_compute_type": { "type": ["string", "null"], "enum": ["microvms", "instances", null] },
         "agentcore_services": { "type": "array", "items": { "type": "string" } },
         "assumptions_used": { "type": "array", "items": { "type": "string" } },
         "warnings": { "type": "array", "items": { "type": "string" } },
@@ -55,6 +63,7 @@
     "deferred_verification_requirements",
     "recommendation_status",
     "deployment_model",
+    "agentcore_compute_type",
     "agentcore_services",
     "assumptions_used",
     "warnings",
@@ -67,6 +76,7 @@
     "scores": { "type": "object", "additionalProperties": { "type": "integer" } },
     "eliminated": { "type": "object", "additionalProperties": { "type": "string" } },
     "deployment_model": { "type": ["string", "null"], "enum": ["harness", "framework_on_runtime", null] },
+    "agentcore_compute_type": { "type": ["string", "null"], "enum": ["microvms", "instances", null] },
     "agentcore_services": { "type": "array", "items": { "type": "string" } },
     "assumptions_used": { "type": "array", "items": { "type": "string" } },
     "warnings": { "type": "array", "items": { "type": "string" } },
