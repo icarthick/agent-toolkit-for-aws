@@ -249,7 +249,7 @@ the report is edited — a stub is never acceptable):
 3. `decision-summary` must **not contain** any `badge-verdict-*` class; when
    `recommendation.outcome` exists it must render a `verdict-headline` element.
 4. When `recommendation.decision_basis` exists: contains `decision-basis`.
-5. If `scenarios/index.json` has ≥2 scenarios, contains `what-if-scenarios`.
+5. If `scenarios/index.json` has ≥2 scenarios, contains exactly one `what-if-scenarios`.
 6. `cost-optimization` is non-empty — the table or the explicit no-eligible-commitment
    sentence, never a blank section. If you wrote the sentence, it renders as visible
    text (not only inside a comment/`<template>`) and reads verbatim once entities decode.
