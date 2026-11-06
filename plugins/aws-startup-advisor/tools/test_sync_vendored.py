@@ -6,6 +6,7 @@ skills, then checks the real plugin is clean as the last assertion.
 from __future__ import annotations
 
 import importlib.util
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -68,6 +69,46 @@ def test_sync_copies_canonical_over_drifted_and_leaves_orphans_as_errors(tmp_pat
     assert len(errors) == 1 and "orphan.md" in errors[0]
     # after sync, only the orphan remains
     assert [e for e in sv.check_plugin(plugin) if "orphan" not in e] == []
+
+
+def _rewrite_keeping_signature(path: Path, data: bytes) -> None:
+    """Overwrite `path` with same-size `data` and restore its mtime, so its
+    (type, size, mtime) signature is exactly what it was before the write."""
+    st = path.stat()
+    assert len(data) == st.st_size
+    path.write_bytes(data)
+    os.utime(path, ns=(st.st_atime_ns, st.st_mtime_ns))
+    assert path.stat().st_mtime_ns == st.st_mtime_ns
+
+
+def test_check_sees_a_fix_that_keeps_the_size_and_mtime(tmp_path: Path):
+    """A vendored copy fixed within one mtime tick, at the same size, must read as in sync."""
+    plugin = _tree(tmp_path)
+    vend = plugin / "skills" / "alpha" / "references" / "vendored" / "pricing.json"
+    canon = plugin / "skills" / "shared" / "pricing.json"
+    assert any("pricing.json: differs from" in e for e in sv.check_plugin(plugin))
+    _rewrite_keeping_signature(vend, canon.read_bytes())
+    assert [e for e in sv.check_plugin(plugin) if "orphan" not in e] == []
+
+
+def test_check_sees_a_drift_that_keeps_the_size_and_mtime(tmp_path: Path):
+    """A vendored copy drifted within one mtime tick, at the same size, must read as drifted."""
+    plugin = _tree(tmp_path)
+    vend = plugin / "skills" / "alpha" / "references" / "vendored" / "dsl" / "INTERPRETER.md"
+    assert not any("INTERPRETER.md" in e for e in sv.check_plugin(plugin))
+    _rewrite_keeping_signature(vend, b"canonical v3\n")
+    assert any("INTERPRETER.md: differs from" in e for e in sv.check_plugin(plugin))
+
+
+def test_sync_sees_a_drift_that_keeps_the_size_and_mtime(tmp_path: Path):
+    """sync_plugin must copy over a same-signature drift, not trust an earlier "equal"."""
+    plugin = _tree(tmp_path)
+    vend = plugin / "skills" / "alpha" / "references" / "vendored" / "dsl" / "INTERPRETER.md"
+    sv.sync_plugin(plugin)
+    _rewrite_keeping_signature(vend, b"canonical v3\n")
+    copied, _ = sv.sync_plugin(plugin)
+    assert copied == 1
+    assert vend.read_text() == "canonical v2\n"
 
 
 def test_deleted_copy_is_caught_via_readme_table(tmp_path: Path):

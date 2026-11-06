@@ -40,7 +40,6 @@ Exit 0 when in sync (or after syncing), 1 on --check failure. Stdlib only.
 from __future__ import annotations
 
 import argparse
-import filecmp
 import re
 import shutil
 import sys
@@ -75,6 +74,12 @@ def _is_managed_file(path: Path, vend_dir: Path) -> bool:
         and path.name not in SKIP_NAMES
         and rel.parts[0] not in SKIP_TOP_LEVEL_DIRS
     )
+
+
+def _same_bytes(a: Path, b: Path) -> bool:
+    """Compare full contents on every call. filecmp.cmp caches by (size, mtime),
+    so a same-size rewrite within one mtime tick would return a stale answer."""
+    return a.read_bytes() == b.read_bytes()
 
 
 _ROW_RE = re.compile(r"^\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*$", re.M)
@@ -158,7 +163,7 @@ def check_plugin(plugin_dir: Path) -> List[str]:
                 f"{_rel(canon)} — either add the file to skills/shared/ "
                 f"or stop vendoring it"
             )
-        elif not filecmp.cmp(vend, canon, shallow=False):
+        elif not _same_bytes(vend, canon):
             errors.append(
                 f"{_rel(vend)}: differs from "
                 f"{_rel(canon)} — run `python3 tools/sync-vendored.py`"
@@ -194,7 +199,7 @@ def sync_plugin(plugin_dir: Path) -> Tuple[int, List[str]]:
                 f"{_rel(canon)} — cannot sync; add it to skills/shared/ or delete the copy"
             )
             continue
-        if not filecmp.cmp(vend, canon, shallow=False):
+        if not _same_bytes(vend, canon):
             shutil.copyfile(canon, vend)
             copied += 1
             print(f"  synced {_rel(vend)} <- {_rel(canon)}")
