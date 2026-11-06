@@ -30,11 +30,46 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import re
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
+
+
+def _load_report_helpers():
+    """Load the helpers this validator shares with the gcp-to-aws report validator.
+
+    They come from this skill's own vendored copy
+    (`references/vendored/report/report_validator_helpers.py`, synced from
+    `skills/shared/report/`), so the skill folder works on its own.
+    """
+    path = (
+        Path(__file__).resolve().parent.parent
+        / "references" / "vendored" / "report" / "report_validator_helpers.py"
+    )
+    spec = importlib.util.spec_from_file_location("report_validator_helpers", path)
+    module = importlib.util.module_from_spec(spec)
+    # references/vendored/ is parity-checked and must hold only the files its
+    # README lists, so no bytecode cache is written next to the copy.
+    dont_write_bytecode = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = dont_write_bytecode
+    return module
+
+
+_report_helpers = _load_report_helpers()
+_CENTS_MEANINGFUL_BELOW = _report_helpers.CENTS_MEANINGFUL_BELOW
+_canonical_money = _report_helpers.canonical_money
+_normalize_money = _report_helpers.normalize_money
+_cost_anchor_matches = _report_helpers.cost_anchor_matches
+_dig = _report_helpers.dig
+_word_shingles = _report_helpers.word_shingles
+_unmatched_phrases = _report_helpers.unmatched_phrases
 
 # Sections required in BOTH report modes. cost-optimization is required in full
 # mode only (see _required_sections) — the decision pack is pre-execution and does
@@ -181,49 +216,6 @@ def _section_html(html: str, section_id: str) -> str | None:
     return frags[0]
 
 
-def _normalize_money(text: str) -> str | None:
-    """Reduce a rendered money string to its canonical display form for exact
-    comparison against the JSON figure (same normalization on both sides via
-    `_canonical_money`). '$1,415/mo' -> '1415'; '$112.90' -> '113'; '$0.40' ->
-    '0.40'. Returns None when no dollar amount is present. Cents are NO LONGER
-    truncated — a correctly rounded report figure must match, not be rejected."""
-    m = re.search(r"\$\s*([0-9][0-9,]*(?:\.[0-9]+)?)", text)
-    if not m:
-        return None
-    try:
-        return _canonical_money(float(m.group(1).replace(",", "")))
-    except (TypeError, ValueError):
-        return None
-
-
-def _canonical_money(value: float) -> str:
-    """Canonical display form for a dollar amount, matching the emitter's own
-    rule (generate-report.md currency rule / the currency-formatting gate):
-    monthly-scale totals (>= $2 after rounding) round to the nearest whole
-    dollar; genuinely small totals keep two-decimal cents. Both the rendered
-    figure and the JSON figure pass through this SAME function before comparison,
-    so a correctly rounded `$113` for `112.90` matches (not truncated to `112`),
-    and the small-total exception (e.g. `$0.40`) is preserved instead of being
-    truncated to `0`. Decides precision on the ROUNDED magnitude so a value that
-    rounds up across the $2 threshold (e.g. 1.999) canonicalizes to `"2"`,
-    matching a displayed `$2`, instead of `"2.00"`."""
-    try:
-        v = float(value)
-    except (TypeError, ValueError):
-        raise
-    rounded_whole = int(round(v))
-    if abs(rounded_whole) >= _CENTS_MEANINGFUL_BELOW:
-        return str(rounded_whole)  # nearest-dollar; 112.90->113, 112.4->112, 1.999->2
-    return f"{v:.2f}"  # genuinely small total: retain cents (0.40 -> "0.40")
-
-
-# Elements whose subtree the browser never renders — an anchor (or its text)
-# inside one must never stand in for the visible figure. Mirrors the currency
-# text parser's inert set so the anchor collector and the currency parser agree
-# on what "rendered" means.
-_ANCHOR_INERT_TAGS = {"script", "style", "template"}
-
-
 # data-cost-key anchor -> estimation-infra.json path. Heroku asserts the recommended
 # AWS monthly (Balanced) figure only; the current-spend comparator is a follow-up
 # (Heroku's current_costs key is not yet settled — heroku_monthly_baseline vs _estimated).
@@ -234,131 +226,6 @@ _COST_ANCHORS = {
 # MUST be present (a missing anchor is a FAIL, not a skip — otherwise an un-anchored
 # wrong figure passes, the bug P1-C exists to catch).
 _REQUIRED_COST_KEYS = ("aws_monthly_balanced",)
-
-
-class _CostAnchorParser(HTMLParser):
-    """Collect the rendered text of every `data-cost-key="..."` element.
-
-    Ported from validate-migration-report.py's parser (GCP) so both providers
-    agree on what "rendered" means. Uses the stdlib HTML parser rather than a
-    regex so that:
-    (a) markup inside an HTML comment is never mistaken for a real anchor —
-        comments are a distinct token the parser never re-tokenizes as tags;
-    (b) nested child markup is read through the anchored element's OWN matching
-        close tag, not the first `</` encountered, by counting nested
-        opens/closes — and a NESTED `data-cost-key` element is collected as its
-        own anchor too (an outer anchor being open must not swallow a recognized
-        inner figure), tracked on a stack;
-    (c) inert subtrees (`<script>`, `<style>`, `<template>`) are skipped — their
-        content is never rendered by the browser, so an anchor or dollar token
-        placed there must not satisfy the visible-figure requirement, even when
-        the inert element itself carries `data-cost-key`;
-    (d) an element with a `hidden` attribute is skipped for the same reason —
-        its subtree is not rendered.
-    Character references are decoded automatically (`convert_charrefs=True`).
-    """
-
-    # Void elements never have an end tag, so they must not be pushed onto the
-    # element stack (doing so would desync every subsequent close).
-    _VOID_TAGS = {
-        "area", "base", "br", "col", "embed", "hr", "img", "input",
-        "link", "meta", "param", "source", "track", "wbr",
-    }
-
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.results: list[tuple[str, str]] = []  # (key, inner text), document order
-        # One frame per open non-void element, innermost last. Each frame:
-        #   {"tag", "inert": bool, "hidden": bool, "anchor": {key,parts}|None}
-        # `inert`/`hidden` are STICKY down the subtree (an element inside an inert
-        # or hidden ancestor is itself skipped) — computed as ancestor-or-self.
-        self._stack: list[dict] = []
-
-    def _in_skip(self) -> bool:
-        """True when the current point is inside an inert or hidden subtree."""
-        return bool(self._stack) and (self._stack[-1]["inert"] or self._stack[-1]["hidden"])
-
-    @staticmethod
-    def _is_hidden(attrs: list[tuple[str, str | None]]) -> bool:
-        # `hidden` is a BOOLEAN attribute: its mere presence hides the subtree,
-        # regardless of value. In HTML `hidden="false"` is NOT a not-hidden value —
-        # "false" is an invalid value for a boolean attribute, whose invalid-value
-        # default is the Hidden state. So any `hidden` attribute (including
-        # `hidden=""`, `hidden="hidden"`, and `hidden="false"`) hides the element;
-        # only the attribute's ABSENCE leaves it visible.
-        return "hidden" in dict(attrs)
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        parent = self._stack[-1] if self._stack else None
-        # inert/hidden are STICKY: an element inside an inert/hidden ancestor is
-        # itself inert/hidden. Kept as clean booleans (never a truthy list).
-        inert = bool(parent and parent["inert"]) or tag in _ANCHOR_INERT_TAGS
-        hidden = bool(parent and parent["hidden"]) or self._is_hidden(attrs)
-        anchor = None
-        key = dict(attrs).get("data-cost-key")
-        # Start a new anchor only when this element is actually rendered.
-        if key and not inert and not hidden:
-            anchor = {"key": key.lower(), "parts": []}
-        frame = {"tag": tag, "inert": inert, "hidden": hidden, "anchor": anchor}
-        if tag not in self._VOID_TAGS:
-            self._stack.append(frame)
-
-    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag in _ANCHOR_INERT_TAGS or self._in_skip():
-            return
-        parent_hidden = self._stack[-1]["hidden"] if self._stack else False
-        key = dict(attrs).get("data-cost-key")
-        # A self-closed anchor has no text content; record it (empty) only if rendered.
-        if key and not parent_hidden and not self._is_hidden(attrs):
-            self.results.append((key.lower(), ""))
-
-    def handle_endtag(self, tag: str) -> None:
-        if tag in self._VOID_TAGS:
-            return
-        # Pop to the nearest matching open tag (tolerate minor misnesting). Every
-        # frame in the popped slice that carried an anchor is emitted — including
-        # any INNER anchors implicitly closed by an outer element's end tag — so a
-        # nested `data-cost-key` is never silently dropped. Emit innermost-first,
-        # then the matched frame, all in the order they closed.
-        for i in range(len(self._stack) - 1, -1, -1):
-            if self._stack[i]["tag"] == tag:
-                popped = self._stack[i:]
-                del self._stack[i:]
-                for frame in reversed(popped):  # innermost closes first
-                    if frame["anchor"] is not None:
-                        self.results.append(
-                            (frame["anchor"]["key"], "".join(frame["anchor"]["parts"]))
-                        )
-                return
-        # Unmatched close tag: ignore.
-
-    def handle_data(self, data: str) -> None:
-        if self._in_skip():
-            return
-        # Append rendered text to every open anchor on the stack (an outer
-        # anchor's text legitimately includes its children's text).
-        for frame in self._stack:
-            if frame["anchor"] is not None:
-                frame["anchor"]["parts"].append(data)
-
-
-def _cost_anchor_matches(html: str) -> list[tuple[str, str]]:
-    """Parse `html` and return every (data-cost-key, rendered text) pair found
-    outside comments and non-rendered markup (script/style/template/hidden),
-    including nested recognized anchors."""
-    parser = _CostAnchorParser()
-    parser.feed(html)
-    parser.close()
-    return parser.results
-
-
-def _dig(d: dict, path: tuple[str, ...]):
-    cur = d
-    for key in path:
-        if not isinstance(cur, dict) or key not in cur:
-            return None
-        cur = cur[key]
-    return cur
 
 
 def _validate_cost_figures(html: str, migration_dir: Path | None) -> list[str]:
@@ -476,8 +343,6 @@ _RATE_SUFFIX_RE = re.compile(
     r"[0-9]+-mo)\b",
     re.IGNORECASE,
 )
-
-_CENTS_MEANINGFUL_BELOW = 2
 
 
 class _DecodedTextParser(HTMLParser):
@@ -873,15 +738,6 @@ def _normalize_phrase(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip().lower()
 
 
-def _word_shingles(text: str, size: int) -> set[str]:
-    words = re.findall(r"[a-z0-9]+", text.lower())
-    if not words:
-        return set()
-    if len(words) <= size:
-        return {" ".join(words)}
-    return {" ".join(words[i : i + size]) for i in range(len(words) - size + 1)}
-
-
 def _phrase_rendered(phrase: str, rendered_text: str, max_width: int = 4) -> bool:
     """Ported from validate-migration-report.py — True when `rendered_text`
     shares a word phrase with the artifact `phrase`, cut at the phrase's own
@@ -891,28 +747,6 @@ def _phrase_rendered(phrase: str, rendered_text: str, max_width: int = 4) -> boo
         return True
     width = min(len(words), max_width)
     return bool(_word_shingles(" ".join(words), width) & _word_shingles(rendered_text, width))
-
-
-def _unmatched_phrases(phrases: list[object], rendered_items: list[str]) -> list[str]:
-    """Return artifact phrases that cannot be assigned distinct rendered items."""
-    matched_items: dict[int, int] = {}
-
-    def assign(phrase_index: int, seen_items: set[int]) -> bool:
-        phrase = str(phrases[phrase_index])
-        for item_index, item in enumerate(rendered_items):
-            if item_index in seen_items or not _phrase_rendered(phrase, item):
-                continue
-            seen_items.add(item_index)
-            previous = matched_items.get(item_index)
-            if previous is None or assign(previous, seen_items):
-                matched_items[item_index] = phrase_index
-                return True
-        return False
-
-    for phrase_index in range(len(phrases)):
-        assign(phrase_index, set())
-    matched_phrases = set(matched_items.values())
-    return [str(phrase) for index, phrase in enumerate(phrases) if index not in matched_phrases]
 
 
 class _RenderedFragmentParser(HTMLParser):
@@ -1114,7 +948,7 @@ def _validate_verdict(html: str, migration_dir: Path | None) -> list[str]:
                 'decision-summary has no "What would flip this" list'
             )
         else:
-            missing = _unmatched_phrases(flips, items)
+            missing = _unmatched_phrases(flips, items, _phrase_rendered)
             if missing:
                 errors.append(
                     f'"What would flip this" list renders {len(flips) - len(missing)} of '
