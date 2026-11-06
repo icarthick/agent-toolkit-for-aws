@@ -1,5 +1,5 @@
 {
-  "$comment": "schema_version: 1; contract source: agents/llm2bedrock-code-rewriter.md §27, PLUS two fields this design adds for resume identity (design §5.1 rewriter exception): baseline_parent_sha, branch_tip_sha. notes carries test counts / collision detail per §27, so it is required. blocked reasons per rewriter §27 (shared enum: model_access, source_key_auth, model_unresolvable).",
+  "$comment": "schema_version: 1; contract source: agents/llm2bedrock-code-rewriter.md §27, PLUS two fields this design adds for resume identity (design §5.1 rewriter exception): baseline_parent_sha, branch_tip_sha. notes carries test counts / collision detail per §27, so it is required. blocked reasons per rewriter §27 (shared enum: model_access, source_key_auth, model_unresolvable). behavior_delta_decisions items are an inline copy of delta-decisions.json items (validate_result.py resolves no cross-file $ref); test_validate_result.py asserts the two are equal.",
   "oneOf": [
     {
       "type": "object",
@@ -28,9 +28,19 @@
               "delta_type": { "type": "string" },
               "location": { "type": "string" },
               "resolution_chosen": { "type": "string" },
-              "source": { "type": "string" },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "user_question",
+                  "skill_default",
+                  "fallback_question",
+                  "ambiguous_user_answer_recommended",
+                  "missing_confirmation_safe_default"
+                ]
+              },
               "user_verbatim_answer": { "type": "string" }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "baseline_parent_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },

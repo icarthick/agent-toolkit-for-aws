@@ -195,6 +195,52 @@ def test_delta_decisions_entry_missing_resolution_fails():
     assert not validate("delta-decisions", {"not": "an array"})
 
 
+DELTA_SOURCES = [
+    "user_question",
+    "skill_default",
+    "fallback_question",
+    "ambiguous_user_answer_recommended",
+    "missing_confirmation_safe_default",
+]
+
+
+def rewrite_with_decision(decision):
+    payload = copy.deepcopy(GOLDEN_REWRITE)
+    payload["behavior_delta_decisions"] = [decision]
+    return payload
+
+
+def test_rewrite_decision_items_match_delta_decisions_items():
+    rewrite_items = schema("rewrite")["oneOf"][0]["properties"]["behavior_delta_decisions"]["items"]
+    assert rewrite_items == schema("delta-decisions")["items"]
+
+
+@pytest.mark.parametrize("source", DELTA_SOURCES)
+def test_each_delta_source_valid_in_both_schemas(source):
+    decision = {**GOLDEN_DELTA_DECISIONS[0], "source": source}
+    assert validate("delta-decisions", [decision])
+    assert validate("rewrite", rewrite_with_decision(decision))
+
+
+def test_rewrite_decision_unknown_source_fails():
+    decision = {**GOLDEN_DELTA_DECISIONS[0], "source": "made_up"}
+    assert not validate("delta-decisions", [decision])
+    assert not validate("rewrite", rewrite_with_decision(decision))
+
+
+def test_rewrite_decision_extra_key_fails():
+    decision = {**GOLDEN_DELTA_DECISIONS[0], "confidence": "high"}
+    assert not validate("delta-decisions", [decision])
+    assert not validate("rewrite", rewrite_with_decision(decision))
+
+
+def test_rewrite_decision_with_verbatim_answer_valid():
+    decision = {**GOLDEN_DELTA_DECISIONS[0],
+                "source": "ambiguous_user_answer_recommended",
+                "user_verbatim_answer": "keep it | whatever works"}
+    assert validate("rewrite", rewrite_with_decision(decision))
+
+
 # ---------- CLI behavior ----------
 
 def write(tmp_path, name, data):
