@@ -56,17 +56,27 @@ def parse_price_dimensions(price_item: dict) -> dict:
 # bare id for display-name lookups and legacy callers; `global.<id>` because it is also
 # a valid, separately-priced invocable form). The `us.<id>`/`eu.<id>` rows carry the
 # actual Geo premium a caller in that region pays.
+# The Sonnet 5.5 and Haiku 5.5 rows were sourced from the AWS Price List API
+# (AmazonBedrockFoundationModels, servicename "Claude Sonnet 5.5 / Claude Haiku 5.5
+# (Amazon Bedrock Edition)", us-east-1 and us-east-2, Standard on-demand) on 2026-11-06.
+# Haiku 5.5 rows carry the <=100K-prompt rate; _LONG_CONTEXT_NOTES names the >100K rate.
 # Re-check this table against that cache (and the public pricing page) whenever either moves.
 STATIC_FALLBACK = {
     "anthropic.claude-haiku-4-5-20251001-v1:0":        {"input_per_1k_usd": 0.001, "output_per_1k_usd": 0.005},
     "us.anthropic.claude-haiku-4-5-20251001-v1:0":     {"input_per_1k_usd": 0.0011, "output_per_1k_usd": 0.0055},
     "eu.anthropic.claude-haiku-4-5-20251001-v1:0":     {"input_per_1k_usd": 0.0011, "output_per_1k_usd": 0.0055},
     "global.anthropic.claude-haiku-4-5-20251001-v1:0": {"input_per_1k_usd": 0.001, "output_per_1k_usd": 0.005},
+    "anthropic.claude-haiku-5-5":                      {"input_per_1k_usd": 0.0001, "output_per_1k_usd": 0.0005},
+    "us.anthropic.claude-haiku-5-5":                   {"input_per_1k_usd": 0.00011, "output_per_1k_usd": 0.00055},
+    "global.anthropic.claude-haiku-5-5":               {"input_per_1k_usd": 0.0001, "output_per_1k_usd": 0.0005},
     # Recommend default
     "anthropic.claude-sonnet-5":                       {"input_per_1k_usd": 0.002, "output_per_1k_usd": 0.010},
     "us.anthropic.claude-sonnet-5":                    {"input_per_1k_usd": 0.0022, "output_per_1k_usd": 0.011},
     "eu.anthropic.claude-sonnet-5":                    {"input_per_1k_usd": 0.0022, "output_per_1k_usd": 0.011},
     "global.anthropic.claude-sonnet-5":                {"input_per_1k_usd": 0.002, "output_per_1k_usd": 0.010},
+    "anthropic.claude-sonnet-5-5":                     {"input_per_1k_usd": 0.002, "output_per_1k_usd": 0.010},
+    "us.anthropic.claude-sonnet-5-5":                  {"input_per_1k_usd": 0.0022, "output_per_1k_usd": 0.011},
+    "global.anthropic.claude-sonnet-5-5":              {"input_per_1k_usd": 0.002, "output_per_1k_usd": 0.010},
     # Still Active — existing workloads / fallbacks
     "anthropic.claude-sonnet-4-6":                     {"input_per_1k_usd": 0.003, "output_per_1k_usd": 0.015},
     "us.anthropic.claude-sonnet-4-6":                  {"input_per_1k_usd": 0.0033, "output_per_1k_usd": 0.0165},
@@ -127,6 +137,25 @@ STATIC_FALLBACK = {
     "global.openai.gpt-6-sol":                      {"input_per_1k_usd": 0.0020, "output_per_1k_usd": 0.010},
     "global.openai.gpt-6-luna":                     {"input_per_1k_usd": 0.00010, "output_per_1k_usd": 0.00050},
     "global.openai.gpt-6.1-sol":                    {"input_per_1k_usd": 0.0020, "output_per_1k_usd": 0.010},
+}
+
+# Where and when each STATIC_FALLBACK row was last sourced; rows not listed carry
+# _TABLE_SOURCE.
+_TABLE_SOURCE = ("verified 2026-10-05 against aws.amazon.com/bedrock/pricing, the Bedrock "
+                 "model cards' Geo/Global inference ID tables, and the vendored pricing cache")
+_ROW_SOURCE = {key: "verified 2026-11-06 against the AWS Price List API (AmazonBedrockFoundationModels)"
+               for key in STATIC_FALLBACK
+               if key.endswith(("anthropic.claude-sonnet-5-5", "anthropic.claude-haiku-5-5"))}
+
+# Rows that carry the lower tier of a model with prompt-size pricing tiers, keyed by
+# STATIC_FALLBACK key. Haiku 5.5 Long Context applies to the whole request (input,
+# output and cache) once the prompt exceeds 100K tokens.
+_HAIKU55_LC = ("Standard tier, <=100K prompt tokens. For a prompt >100K tokens the "
+               "Long Context rate applies to the whole request: ")
+_LONG_CONTEXT_NOTES = {
+    "anthropic.claude-haiku-5-5":        _HAIKU55_LC + "$0.50 input / $2.50 output per 1M (Global).",
+    "global.anthropic.claude-haiku-5-5": _HAIKU55_LC + "$0.50 input / $2.50 output per 1M (Global).",
+    "us.anthropic.claude-haiku-5-5":     _HAIKU55_LC + "$0.55 input / $2.75 output per 1M (US Geo).",
 }
 
 
@@ -224,13 +253,12 @@ def _opus55_pricing(region: str, model_id: str) -> dict:
                     f"Standard tier, {region}, {prefix} inference; no Batch"}
 
 
-def _static_fallback(model_id: str) -> dict | None:
-    """Try the static fallback table. Returns a result dict or None."""
+def _static_fallback_key(model_id: str) -> str | None:
+    """Pure: the STATIC_FALLBACK key that prices model_id, or None."""
     if "claude-opus-5" in model_id:
         return None  # Opus 5.5 requires exact, region-aware pricing.
-    entry = STATIC_FALLBACK.get(model_id)
-    if entry:
-        return {**entry, "available": True, "note": "static fallback (PriceList API had no entry)"}
+    if model_id in STATIC_FALLBACK:
+        return model_id
     # Proprietary GPT ids require an EXACT match, in every form (bare mantle id or
     # us./in./global. CRIS profile). Tier names differ only by suffix at very
     # different price points, and the inference options differ by prefix at a 10%
@@ -238,23 +266,30 @@ def _static_fallback(model_id: str) -> dict | None:
     # would silently bill one tier or option at another's rate.
     if is_mantle_gpt(model_id) or re.match(r"^(us|in|global)\.openai\.gpt-[56]", model_id):
         return None
-    # Try stripping the version suffix for a partial match (e.g. us.anthropic.claude-sonnet-5)
-    base = model_id.rsplit("-v", 1)[0] if "-v" in model_id else model_id
-    for key, val in STATIC_FALLBACK.items():
-        # Bidirectional: a dateless query must match a dated table key
-        # (key startswith base) AND a date-pinned query must match a dateless
-        # family key (base startswith key + "-"; the separator guard keeps
-        # ...opus-4-85 from matching the ...opus-4-8 family).
-        if key.startswith(base) or base == key or base.startswith(key + "-"):
-            return {**val, "available": True, "note": f"static fallback (matched {key})"}
-    # Also strip a trailing date stamp (e.g. ...-sonnet-4-6-20250514 -> ...-sonnet-4-6) so a
-    # dated ID form still matches the undated table keys.
-    dateless = re.sub(r"-\d{8}$", "", base)
-    if dateless != base:
-        for key, val in STATIC_FALLBACK.items():
-            if key.startswith(dateless):
-                return {**val, "available": True, "note": f"static fallback (matched {key})"}
-    return None
+    # Same model only: the query and the key must be equal once each loses its
+    # date/version suffix (-YYYYMMDD, -vN, :N). A dated query reaches its undated
+    # key and a dateless query its dated key, while a different family or minor
+    # version (sonnet-5 vs sonnet-5-5, opus-4 vs opus-4-8) never compares equal.
+    model = _model_family(model_id)
+    return next((key for key in STATIC_FALLBACK if _model_family(key) == model), None)
+
+
+def _static_fallback(model_id: str) -> dict | None:
+    """Try the static fallback table. Returns a result dict or None."""
+    key = _static_fallback_key(model_id)
+    if key is None:
+        return None
+    note = ("static fallback (PriceList API had no entry)" if key == model_id
+            else f"static fallback (matched {key})")
+    return {**STATIC_FALLBACK[key], "available": True, "note": note}
+
+
+def _model_family(model_id: str) -> str:
+    """Pure: strip a trailing :N, -vN and -YYYYMMDD, in that order.
+    'us.anthropic.claude-haiku-4-5-20251001-v1:0' -> 'us.anthropic.claude-haiku-4-5'."""
+    family = re.sub(r":\d+$", "", model_id)
+    family = re.sub(r"-v\d+$", "", family)
+    return re.sub(r"-\d{8}$", "", family)
 
 
 def display_name_guess(model_id: str) -> str:
@@ -291,9 +326,10 @@ def lookup(region: str, model_id: str) -> dict:
     # by display name and frequently lacks entries for new inference profiles.
     fb = _static_fallback(model_id)
     if fb:
-        fb["note"] = ("static pricing table (verified 2026-10-05 against "
-                      "aws.amazon.com/bedrock/pricing, the Bedrock model cards' "
-                      "Geo/Global inference ID tables, and the vendored pricing cache)")
+        key = _static_fallback_key(model_id)
+        fb["note"] = f"static pricing table (matched {key}; {_ROW_SOURCE.get(key, _TABLE_SOURCE)})"
+        if key in _LONG_CONTEXT_NOTES:
+            fb["note"] += "; " + _LONG_CONTEXT_NOTES[key]
         if model_id.endswith("openai.gpt-6-astra"):
             fb["note"] += ("; Standard tier, <=272K input tokens. For >272K, "
                            "use 2x input / 1.5x output rates.")
