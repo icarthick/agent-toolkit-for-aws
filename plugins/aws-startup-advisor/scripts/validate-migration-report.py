@@ -346,6 +346,44 @@ def _section_html(html: str, section_id: str) -> str | None:
     return parser.found_html
 
 
+class _RenderedSectionCounter(HTMLParser):
+    """Count rendered <section id="..."> opens by parsed tag structure.
+
+    HTMLParser routes comment text to handle_comment, so a commented skeleton
+    placeholder such as `<!-- <section id="what-if-scenarios"> -->` is not a tag
+    here; sections inside an inert <template>/<script>/<style> subtree are never
+    rendered and are not counted either."""
+
+    _INERT_TAGS = {"script", "style", "template"}
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.counts: dict[str, int] = {}
+        self._inert_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in self._INERT_TAGS:
+            self._inert_depth += 1
+            return
+        if tag != "section" or self._inert_depth > 0:
+            return
+        sid = dict(attrs).get("id")
+        if sid:
+            self.counts[sid] = self.counts.get(sid, 0) + 1
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in self._INERT_TAGS and self._inert_depth > 0:
+            self._inert_depth -= 1
+
+
+def _rendered_section_count(html: str, section_id: str) -> int:
+    """Number of rendered <section id="section_id"> elements in `html`."""
+    parser = _RenderedSectionCounter()
+    parser.feed(html)
+    parser.close()
+    return parser.counts.get(section_id, 0)
+
+
 def _section_id_counts(html: str) -> dict[str, int]:
     counts: dict[str, int] = {}
     for match in SECTION_OPEN.finditer(html):
@@ -2316,7 +2354,7 @@ def validate_report(
     # Catch verbatim copies of the reference fixture into a real run.
     errors.extend(_validate_fixture_bleed(html, migration_dir))
 
-    # What-if workshop scenario table — required when ≥2 scenarios were snapshotted.
+    # What-if workshop scenario table — exactly one when ≥2 scenarios were snapshotted.
     if migration_dir is not None:
         index_path = migration_dir / "scenarios" / "index.json"
         if index_path.is_file():
@@ -2325,13 +2363,18 @@ def validate_report(
             except (OSError, json.JSONDecodeError):
                 index = None
             scenarios = (index or {}).get("scenarios") or []
-            counts = _section_id_counts(html)
-            if len(scenarios) >= 2 and counts.get("what-if-scenarios", 0) < 1:
-                errors.append(
-                    'scenarios/index.json has ≥2 scenarios but no '
-                    '<section id="what-if-scenarios"> (workshop compare table is '
-                    "required in the migration report when variants exist)"
-                )
+            if len(scenarios) >= 2:
+                what_if_n = _rendered_section_count(html, "what-if-scenarios")
+                if what_if_n < 1:
+                    errors.append(
+                        'scenarios/index.json has ≥2 scenarios but no '
+                        '<section id="what-if-scenarios"> (workshop compare table is '
+                        "required in the migration report when variants exist)"
+                    )
+                elif what_if_n > 1:
+                    errors.append(
+                        f'duplicate <section id="what-if-scenarios"> ({what_if_n} occurrences)'
+                    )
 
     return errors
 

@@ -433,6 +433,71 @@ def test_scenario_column_check_requires_migration_dir() -> None:
     assert any("Region" in err for err in errors_with_dir), errors_with_dir
 
 
+_FULL_WHAT_IF = (
+    '<section id="what-if-scenarios"><table><caption>Scenarios</caption><thead><tr>'
+    '<th scope="col">Scenario</th><th scope="col">Region</th><th scope="col">HA</th>'
+    '<th scope="col">Compute</th><th scope="col">Arch</th><th scope="col">Premium</th>'
+    '<th scope="col">Balanced</th><th scope="col">Optimized</th>'
+    '<th scope="col">Complexity</th></tr></thead><tbody><tr><td>Baseline</td>'
+    "<td>us-east-1</td><td>Multi-AZ</td><td>Fargate</td><td>mixed</td><td>$3</td>"
+    "<td>$2</td><td>$1</td><td>Large</td></tr></tbody></table></section>"
+)
+_WHAT_IF_PLACEHOLDER = (
+    '<!-- <section id="what-if-scenarios"> when scenarios/index.json has ≥2 entries -->'
+)
+
+
+def _what_if_errors(html: str) -> list[str]:
+    import tempfile
+
+    validator = _load()
+    ai = json.loads((FIXTURES / "estimation-ai-reference.json").read_text(encoding="utf-8"))
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        (root / "scenarios").mkdir()
+        (root / "scenarios" / "index.json").write_text(
+            json.dumps({"scenarios": [{"id": "a"}, {"id": "b"}]}), encoding="utf-8"
+        )
+        errors = validator.validate_report(
+            html, _reference_estimate(), ai, migration_dir=root
+        )
+    return [err for err in errors if "what-if-scenarios" in err]
+
+
+def _with_what_if(*blocks: str) -> str:
+    return _reference_html().replace(
+        '<section id="exec-timeline">',
+        "".join(blocks) + '<section id="exec-timeline">',
+    )
+
+
+def test_duplicate_what_if_section_fails() -> None:
+    # Check 18: >=2 scenarios require exactly one what-if section; a second
+    # (possibly stale) table is never column-checked, so it must be rejected.
+    errors = _what_if_errors(_with_what_if(_FULL_WHAT_IF, _FULL_WHAT_IF))
+    assert any(
+        'duplicate <section id="what-if-scenarios"> (2 occurrences)' in err
+        for err in errors
+    ), errors
+
+
+def test_single_what_if_section_passes() -> None:
+    errors = _what_if_errors(_with_what_if(_FULL_WHAT_IF))
+    assert errors == [], errors
+
+
+def test_single_what_if_section_with_commented_placeholder_passes() -> None:
+    # The report skeleton carries a commented what-if placeholder; it is not a
+    # rendered section and must not count as a duplicate.
+    errors = _what_if_errors(_with_what_if(_WHAT_IF_PLACEHOLDER, _FULL_WHAT_IF))
+    assert errors == [], errors
+
+
+def test_missing_what_if_section_still_fails() -> None:
+    errors = _what_if_errors(_with_what_if(_WHAT_IF_PLACEHOLDER))
+    assert any("no <section id=\"what-if-scenarios\">" in err for err in errors), errors
+
+
 def test_decision_fixture_still_passes() -> None:
     validator = _load()
     root = FIXTURES / "gcp-decision-gate" / "after-decide-complete"

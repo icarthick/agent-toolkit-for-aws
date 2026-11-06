@@ -1318,10 +1318,15 @@ def validate(html: str, migration_dir: Path | None, mode: str = "full") -> list[
             except (OSError, json.JSONDecodeError):
                 index = None
             scenarios = (index or {}).get("scenarios") or []
-            if len(scenarios) >= 2 and counts.get("what-if-scenarios", 0) < 1:
+            what_if_n = counts.get("what-if-scenarios", 0)
+            if len(scenarios) >= 2 and what_if_n < 1:
                 errors.append(
                     'scenarios/index.json has ≥2 scenarios but no '
                     '<section id="what-if-scenarios">'
+                )
+            elif len(scenarios) >= 2 and what_if_n > 1:
+                errors.append(
+                    f'duplicate <section id="what-if-scenarios"> ({what_if_n} occurrences)'
                 )
             elif len(scenarios) >= 2:
                 section = _section_html(html, "what-if-scenarios") or ""

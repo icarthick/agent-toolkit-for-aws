@@ -377,6 +377,56 @@ def test_what_if_required_when_two_scenarios() -> None:
     assert "what-if-scenarios" in out
 
 
+_HEROKU_FULL_WHAT_IF = (
+    '<section id="what-if-scenarios"><table><thead><tr>'
+    '<th scope="col">Scenario</th><th scope="col">Region</th><th scope="col">HA</th>'
+    '<th scope="col">Compute</th><th scope="col">Arch</th>'
+    '<th scope="col">Complexity</th></tr></thead>'
+    "<tbody><tr><td>Baseline</td><td>us-east-1</td><td>Multi-AZ</td>"
+    "<td>Fargate</td><td>mixed</td><td>Large</td></tr></tbody></table></section>"
+)
+_HEROKU_WHAT_IF_PLACEHOLDER = '<!-- <section id="what-if-scenarios"> when ≥2 scenarios -->'
+
+
+def _run_two_scenarios(html: str) -> tuple[int, str]:
+    with tempfile.TemporaryDirectory() as tmp:
+        d = Path(tmp)
+        (d / "scenarios").mkdir()
+        (d / "scenarios" / "index.json").write_text(
+            json.dumps({"scenarios": [{"id": "a"}, {"id": "b"}]}), encoding="utf-8"
+        )
+        return run(html, migration_dir=d)
+
+
+def test_duplicate_what_if_section_fails() -> None:
+    html = GOOD.replace(
+        '<section id="next-steps">',
+        _HEROKU_FULL_WHAT_IF + _HEROKU_FULL_WHAT_IF + '<section id="next-steps">',
+    )
+    code, out = _run_two_scenarios(html)
+    assert code == 1, out
+    assert 'duplicate <section id="what-if-scenarios"> (2 occurrences)' in out
+
+
+def test_single_what_if_section_passes() -> None:
+    html = GOOD.replace(
+        '<section id="next-steps">', _HEROKU_FULL_WHAT_IF + '<section id="next-steps">'
+    )
+    code, out = _run_two_scenarios(html)
+    assert code == 0, out
+
+
+def test_single_what_if_section_with_commented_placeholder_passes() -> None:
+    # The report skeleton keeps a commented what-if placeholder; it is not a
+    # rendered section and must not count as a duplicate.
+    html = GOOD.replace(
+        '<section id="next-steps">',
+        _HEROKU_WHAT_IF_PLACEHOLDER + _HEROKU_FULL_WHAT_IF + '<section id="next-steps">',
+    )
+    code, out = _run_two_scenarios(html)
+    assert code == 0, out
+
+
 def test_good_report_with_recommendation_passes() -> None:
     # Happy path WITH a declared outcome: the verdict-headline is present, so the
     # recommendation-gated requirement is satisfied and the report passes.
