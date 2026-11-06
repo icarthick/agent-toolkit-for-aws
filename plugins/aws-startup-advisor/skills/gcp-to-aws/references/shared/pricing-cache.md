@@ -427,8 +427,8 @@ Prices per 1M tokens. Source: [ai.google.dev/gemini-api/docs/pricing](https://ai
 
 Prices per 1M tokens. GPT-5.5 and GPT-5.5 Pro use the same breakpoint pricing structure as GPT-5.4 at 272K input tokens. GPT-5.4 and GPT-5.4 Pro use **breakpoint pricing** at 272K input tokens: rates below are for <272K context; above 272K, input is 2x and output is 1.5x.
 
-GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, and GPT-6.1 Sol use the same breakpoint shape at 272,000 input
-tokens: rows below are the short-context (≤272K) rate; above 272,000 input tokens, the entire
+GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, GPT-6.1 Sol, and GPT-6.1 Terra use the same breakpoint shape at 272,000
+input tokens: rows below are the short-context (≤272K) rate; above 272,000 input tokens, the entire
 request — input, cache, and output — is repriced at 2x input/cache and 1.5x output (see the
 long-context tables in the Bedrock section above, or OpenAI's own GPT-6 pricing page, for the
 resulting rates).
@@ -447,6 +447,7 @@ resulting rates).
 | ------------- | ------------ | ------------ | ------- | --------- |
 | GPT-6 Astra   | 10.00        | 50.00        | ≤272K*  | frontier  |
 | GPT-6.1 Sol   | 2.00         | 10.00        | ≤272K*  | flagship  |
+| GPT-6.1 Terra | 1.00 †       | 5.00 †       | ≤272K*  | flagship  |
 | GPT-6 Sol     | 2.00         | 10.00        | ≤272K*  | flagship  |
 | GPT-6 Luna    | 0.10         | 0.50         | ≤272K*  | fast      |
 | GPT-5.6 Sol   | _unverified_ | _unverified_ | 1M      | frontier  |
@@ -468,6 +469,10 @@ resulting rates).
 | GPT-4o        | 2.50         | 10.00        | 128K    | flagship  |
 | o3            | 2.00         | 8.00         | 200K    | reasoning |
 | o4-mini       | 1.10         | 4.40         | 200K    | reasoning |
+
+† GPT-6.1 Terra's OpenAI standard rate is derived from its [AWS model card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-openai-gpt-6-1-terra.html)
+(2026-11-06), not read off OpenAI's pricing page: the card states that In-Region prices (1.10 / 5.50) include a 10%
+fee over OpenAI rates, and its Global CRIS rate (1.00 / 5.00) matches that derivation.
 
 *GPT-6 rows: 1.05M is the model's max window, not this rate's valid range. Requests >272,000 input tokens reprice input/cache 2x and output 1.5x — see the breakpoint note above and pricing-cache.md's long-context tables.
 

@@ -230,6 +230,81 @@ def test_gpt6_unsupported_geo_profile_falls_back_without_fabricated_id(
     }
 
 
+# --- GPT-6.1 Terra: same-model routing for Terra sources only ---------------
+
+
+def test_gpt6_1_terra_source_selects_exact_model_on_mantle_and_validates_schema():
+    workload = _workload(
+        source={"model_ids": ["gpt-6.1-terra"]},
+        requirements={"api_continuity": "required", "critical_features": ["image_input_vision"]},
+    )
+    out = _full_recommend(workload, region="us-east-1")
+    jsonschema.validate(out, _OUT_SCHEMA)
+    rec = out["workloads"]["chat-svc"]
+    assert rec["decision_status"] == "recommended"
+    assert rec["primary_model"] == "openai.gpt-6.1-terra"
+    assert rec["api_path"] == "mantle_openai_responses"
+
+
+def test_gpt6_1_terra_chat_completions_preserves_chat_surface():
+    rec = _recommend(
+        _workload(
+            source={"model_ids": ["gpt-6.1-terra"], "api_surface": "chat_completions"},
+            requirements={"api_continuity": "required"},
+        ),
+        region="us-east-1",
+    )
+    assert rec["primary_model"] == "openai.gpt-6.1-terra"
+    assert rec["api_path"] == "mantle_openai_chat"
+
+
+def test_gpt6_1_terra_governance_geo_us_selects_us_profile():
+    rec = _recommend(
+        _workload(
+            source={"model_ids": ["gpt-6.1-terra"]},
+            requirements={
+                "governance": ["guardrails"],
+                "data_residency": "geo_required",
+                "cris_geography": "us",
+            },
+        )
+    )
+    assert rec["decision_status"] == "recommended"
+    assert rec["primary_model"] == "openai.gpt-6.1-terra"
+    assert rec["api_path"] == "runtime_converse"
+    assert rec["invocation_model_id"] == "us.openai.gpt-6.1-terra"
+
+
+def test_gpt6_1_terra_global_profile_is_not_fabricated_without_cataloged_regions():
+    # The card's Global CRIS source Regions are not cataloged, so a Global request
+    # must not produce global.openai.gpt-6.1-terra.
+    rec = _recommend(
+        _workload(
+            source={"model_ids": ["gpt-6.1-terra"]},
+            requirements={"governance": ["guardrails"], "data_residency": "global_allowed"},
+        )
+    )
+    assert rec["invocation_model_id"] != "global.openai.gpt-6.1-terra"
+
+
+def test_gpt6_1_terra_mantle_skips_exact_model_outside_cataloged_region():
+    rec = _recommend(
+        _workload(
+            source={"model_ids": ["gpt-6.1-terra"]},
+            requirements={"api_continuity": "required"},
+        ),
+        region="us-west-2",
+    )
+    assert rec["primary_model"] != "openai.gpt-6.1-terra"
+
+
+@pytest.mark.parametrize("source_id", ["gpt-6.1-sol", "gpt-6-sol", "gpt-5.6-terra", "gpt-4o"])
+def test_non_terra_sources_never_select_gpt6_1_terra(source_id):
+    for region in ("us-east-1", "us-east-2"):
+        rec = _recommend(_workload(source={"model_ids": [source_id]}), region=region)
+        assert rec["primary_model"] != "openai.gpt-6.1-terra", (source_id, region)
+
+
 def test_active_catalog_contains_gpt6_profile_metadata_and_current_provenance():
     assert OPENAI_CATALOG["verified_at"] == "2026-09-24"
     for model_key, _ in _GPT6_MODELS:

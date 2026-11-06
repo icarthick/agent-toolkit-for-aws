@@ -115,6 +115,7 @@ The pricing script only covers Bedrock models. For the source provider (OpenAI, 
 | -------------------------- | -------------- | --------------- |
 | gpt-6-astra                | 10.00          | 50.00           |
 | gpt-6.1-sol                | 2.00           | 10.00           |
+| gpt-6.1-terra              | 1.00           | 5.00            |
 | gpt-6-sol                  | 2.00           | 10.00           |
 | gpt-6-luna                 | 0.10           | 0.50            |
 | gpt-5.6-luna               | 0.20           | 1.20            |
@@ -132,6 +133,8 @@ The pricing script only covers Bedrock models. For the source provider (OpenAI, 
 | gemini-2.0-flash           | 0.10           | 0.40            |
 | claude-3-5-sonnet (1P API) | 3.00           | 15.00           |
 | claude-3-haiku (1P API)    | 0.25           | 1.25            |
+
+The `gpt-6.1-terra` row is derived from its AWS model card, whose In-Region rate ($1.10 / $5.50) includes a 10% fee over OpenAI rates; its Global CRIS rate ($1.00 / $5.00) matches.
 
 **Astra:** use its separately dated Bedrock rates and context/inference tier. Its source price is absent from the table below; verify that price or mark the source comparison unavailable. Do not estimate Astra from a lower GPT tier or assume GPT-5.x parity/premium.
 

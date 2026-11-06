@@ -263,6 +263,7 @@ def test_mantle_gpt_detection_includes_bare_gpt6():
     assert bp.is_mantle_gpt("openai.gpt-6-sol") is True
     assert bp.is_mantle_gpt("openai.gpt-6-luna") is True
     assert bp.is_mantle_gpt("openai.gpt-6.1-sol") is True
+    assert bp.is_mantle_gpt("openai.gpt-6.1-terra") is True
     assert bp.is_mantle_gpt("openai.gpt-oss-120b-1:0") is False
 
 
@@ -322,11 +323,12 @@ def test_all_five_proprietary_gpt_models_are_priced():
         assert v["input_per_1k_usd"] > 0 and v["output_per_1k_usd"] > 0, mid
 
 
-def test_all_four_gpt6_models_are_priced():
+def test_all_gpt6_models_are_priced():
     # Finding 4: GPT-6's bare ids previously had zero STATIC_FALLBACK entries, so
     # they fell through to the live Pricing API (which never carries OpenAI rows)
     # and resolved to unavailable despite being a GA, priced model.
-    for mid in ("openai.gpt-6-astra", "openai.gpt-6-sol", "openai.gpt-6-luna", "openai.gpt-6.1-sol"):
+    for mid in ("openai.gpt-6-astra", "openai.gpt-6-sol", "openai.gpt-6-luna", "openai.gpt-6.1-sol",
+                "openai.gpt-6.1-terra"):
         v = bp.lookup("us-east-1", mid)
         assert v["available"] is True, mid
         assert v["input_per_1k_usd"] > 0 and v["output_per_1k_usd"] > 0, mid
@@ -340,6 +342,7 @@ def test_gpt6_cris_forms_priced_at_correct_option():
         "gpt-6-sol": (0.0020, 0.010),
         "gpt-6-luna": (0.00010, 0.00050),
         "gpt-6.1-sol": (0.0020, 0.010),
+        "gpt-6.1-terra": (0.0010, 0.0050),
     }
     for mid, entry in bp.STATIC_FALLBACK.items():
         if "openai.gpt-6" not in mid:
@@ -356,6 +359,7 @@ def test_gpt6_cris_forms_never_partial_match():
     # one must resolve to unavailable, never partial-match a sibling entry.
     assert bp._static_fallback("in.openai.gpt-6-sol") is None
     assert bp._static_fallback("in.openai.gpt-6.1-sol") is None
+    assert bp._static_fallback("in.openai.gpt-6.1-terra") is None
 
 
 def test_mantle_gpt_never_prefix_matches_a_different_tier():
