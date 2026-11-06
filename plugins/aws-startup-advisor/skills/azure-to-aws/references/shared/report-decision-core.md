@@ -216,9 +216,9 @@ Omit entirely when workshop was declined or never entered.
 
 Resolve knobs from each scenario's preferences copy (or
 `preferences_subset` / `estimation_summary` on the manifest): Region ←
-`design_constraints.target_region.value`; HA ←
-`design_constraints.availability.value`; Compute ←
-`design_constraints.kubernetes.value` when present; Arch ←
+`global.target_region.value`; HA ←
+`data.availability.value`; Compute ←
+`design_constraints.compute_target.value` when present; Arch ←
 `design_constraints.cpu_architecture.value`. Costs and complexity ←
 `estimation_summary`.
 3. Mark the active row (`scenario_id == index.active_scenario_id`) with

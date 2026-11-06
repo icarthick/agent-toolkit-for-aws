@@ -202,6 +202,41 @@ def test_gate_mutations_reconcile_scenarios() -> None:
     )
 
 
+# The report's what-if table and the in-chat compare view read the same knobs from the
+# Azure preferences shape (schema-preferences.md), not the gcp-to-aws one.
+WHAT_IF_KNOB_PATHS = (
+    "global.target_region.value",
+    "data.availability.value",
+    "design_constraints.compute_target.value",
+    "design_constraints.cpu_architecture.value",
+)
+
+
+def test_report_what_if_knobs_use_azure_preference_paths() -> None:
+    what_if = _section(
+        _read(REPORT_CORE), "**Section 3b — What-if scenarios", "**Section 3c"
+    )
+    compare = _read(WORKSHOP_COMPARE)
+    schema = _read(SCHEMA_PREFS)
+    for path in WHAT_IF_KNOB_PATHS:
+        assert path in what_if, f"report-decision-core.md § 3b no longer reads `{path}`"
+        assert path in compare, f"workshop-compare.md no longer reads `{path}`"
+        group, key, _ = path.split(".")
+        schema_group = _section(schema, f'"{group}": {{', "\n  }")
+        assert f'"{key}":' in schema_group, (
+            f"schema-preferences.md has no `{group}.{key}`; the what-if knob path is stale"
+        )
+    for path in (
+        "design_constraints.target_region",
+        "design_constraints.availability",
+        "design_constraints.kubernetes",
+    ):
+        assert path not in what_if, (
+            f"report-decision-core.md § 3b reads `{path}`, which the Azure preferences "
+            "schema does not define"
+        )
+
+
 def _load_asserter():
     spec = importlib.util.spec_from_file_location("check_expected_clarify", ASSERTER)
     assert spec and spec.loader
