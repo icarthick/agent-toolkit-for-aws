@@ -56,7 +56,7 @@ For each delta listed in the matching reference:
 }
 ```
 
-For `resolution_kind: "impl_path"`, omit `option_set_id` (the schema enforces this via discriminated union).
+For `resolution_kind: "ux_choice"`, include `option_set_id` (`range_narrowed` or `parameter_removed`). For `resolution_kind: "impl_path"`, omit `option_set_id`. Both are conventions: `scripts/schemas/analysis.json` types `option_set_id` as an optional string and does not check it against `resolution_kind`, so follow them yourself.
 
 ---
 
@@ -91,7 +91,7 @@ Used by the rewriter's defense-in-depth fallback rule (see "Fallback rule" below
 2. **Skip this change** — leave the original code unchanged; insert a `# TODO: Bedrock incompatibility — needs manual review` comment near the line.
 3. **Let me describe what I want** — freeform answer; agent records the answer verbatim and either follows it or, if still ambiguous, records as a custom decision (see "Ambiguous user answers" below).
 
-(`parameter_replaced` is intentionally NOT in v1's `option_set_id` enum. Adding it without a usable option set would be dead code. When Gemini Guardrails auto-mapping lands in v2, the enum gains the value and the option set.)
+(`parameter_replaced` is intentionally NOT one of v1's `option_set_id` values. The values are the option sets defined in this file, by convention; the schema does not restrict them, and the rewriter routes an unrecognized value to the `fallback` set. Adding `parameter_replaced` without a usable option set would be dead code. When Gemini Guardrails auto-mapping lands in v2, it gains an option set here.)
 
 For `resolution_kind == "impl_path"` (e.g., JSON mode rewrite via prefill vs tool use, dropping incompatible safety_settings), DO NOT ask the user. Pick the default specified in the reference and document the choice in the rewriter's returned `notes` field (and in `behavior_delta_decisions`).
 
@@ -110,7 +110,7 @@ After asking the user (or applying an `impl_path` default, or running the fallba
 }
 ```
 
-`resolution_chosen` is a typed enum: `"{option_set_id}_{1-indexed_option_number}"` for ux_choice and fallback paths, or `"impl_path_default"` for impl_path defaults. The `behavior_deltas` item schema inside `scripts/schemas/analysis.json` is the authoritative field contract (the recording shape is `scripts/schemas/delta-decisions.json`).
+`resolution_chosen` is a typed enum: `"{option_set_id}_{1-indexed_option_number}"` for ux_choice and fallback paths, or `"impl_path_default"` for impl_path defaults. The `behavior_deltas` item schema inside `scripts/schemas/analysis.json` is the authoritative field contract for field names and types; it does not enforce the `resolution_kind`→`option_set_id` pairing or the set of `option_set_id` values (the recording shape is `scripts/schemas/delta-decisions.json`).
 
 `source` indicates how the decision was reached:
 
