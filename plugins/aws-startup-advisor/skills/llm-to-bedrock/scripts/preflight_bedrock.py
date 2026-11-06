@@ -60,7 +60,7 @@ def is_embedding_model(model_id: str) -> bool:
 def is_mantle_model(model_id: str) -> bool:
     """Pure: ids that must be probed via the mantle Responses API rather than
     Converse/InvokeModel. Matches the BARE proprietary GPT ids (`openai.gpt-5*`,
-    `openai.gpt-6*` — covers GPT-5.5/5.4/5.6 and GPT-6 Astra/Sol/Luna/6.1 Sol),
+    `openai.gpt-6*` — covers GPT-5.5/5.4/5.6 and GPT-6 Astra/Sol/Luna/6.1 Sol/6.1 Terra),
     which are mantle-served. Deliberately does NOT match:
     - gpt-oss ids (Converse-capable on bedrock-runtime), and
     - GPT-5.6/GPT-6 CRIS profile ids (`us.`/`in.`/`global.` prefixed) — those are

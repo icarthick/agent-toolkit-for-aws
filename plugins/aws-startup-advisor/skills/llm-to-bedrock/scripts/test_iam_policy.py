@@ -131,6 +131,7 @@ def test_is_mantle_model_matches_bare_gpt6_ids():
     assert is_mantle_model("openai.gpt-6-sol") is True
     assert is_mantle_model("openai.gpt-6-luna") is True
     assert is_mantle_model("openai.gpt-6.1-sol") is True
+    assert is_mantle_model("openai.gpt-6.1-terra") is True
     assert is_mantle_model("us.openai.gpt-6-sol") is False
     assert is_mantle_model("openai.gpt-oss-120b-1:0") is False
 
@@ -224,6 +225,8 @@ class TestGpt6CrisProjectArn:
         assert is_gpt6_cris_model("global.openai.gpt-6-sol")
         assert is_gpt6_cris_model("us.openai.gpt-6-astra")
         assert is_gpt6_cris_model("us.openai.gpt-6.1-sol")
+        assert is_gpt6_cris_model("us.openai.gpt-6.1-terra")
+        assert is_gpt6_cris_model("global.openai.gpt-6.1-terra")
         assert is_gpt6_cris_model("global.openai.gpt-6-luna")
 
     def test_is_gpt6_cris_model_excludes_bare_and_non_gpt6(self):
@@ -238,6 +241,8 @@ class TestGpt6CrisProjectArn:
             "us.openai.gpt-6-astra",
             "us.openai.gpt-6.1-sol",
             "global.openai.gpt-6-luna",
+            "us.openai.gpt-6.1-terra",
+            "global.openai.gpt-6.1-terra",
         ],
     )
     def test_generate_policy_grants_project_default_for_gpt6_cris(self, model_id):

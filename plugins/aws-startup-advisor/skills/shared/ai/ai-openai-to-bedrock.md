@@ -59,8 +59,8 @@ Apply in order. Stop at the first tier that resolves.
 
 ### Tier 0 — Source model is on Bedrock (default path)
 
-If the detected model is GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, GPT-6.1 Sol, GPT-5.6 Sol / Terra / Luna, GPT-5.5, or
-GPT-5.4, the target is **the same model on Bedrock**.
+If the detected model is GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, GPT-6.1 Sol, GPT-6.1 Terra, GPT-5.6 Sol / Terra / Luna,
+GPT-5.5, or GPT-5.4, the target is **the same model on Bedrock**.
 
 | Source model  | Bedrock target | Model ID (mantle / runtime CRIS)                        | Assessment                                                      |
 | ------------- | -------------- | ------------------------------------------------------- | --------------------------------------------------------------- |
@@ -68,6 +68,7 @@ GPT-5.4, the target is **the same model on Bedrock**.
 | GPT-6 Sol     | GPT-6 Sol      | `openai.gpt-6-sol` / `us.` `global.` prefixed           | `strong_migrate` — same model; parity on Global CRIS, else +10% |
 | GPT-6 Luna    | GPT-6 Luna     | `openai.gpt-6-luna` / `us.` `global.` prefixed          | `strong_migrate` — same model; parity on Global CRIS, else +10% |
 | GPT-6.1 Sol   | GPT-6.1 Sol    | `openai.gpt-6.1-sol` / `us.` `global.` prefixed         | `strong_migrate` — same model; parity on Global CRIS, else +10% |
+| GPT-6.1 Terra | GPT-6.1 Terra  | `openai.gpt-6.1-terra` / `us.` `global.` prefixed       | `strong_migrate` — same model; parity on Global CRIS, else +10% |
 | GPT-5.6 Sol   | GPT-5.6 Sol    | `openai.gpt-5.6-sol` / `us.` `global.` prefixed         | `strong_migrate` — same model; parity on Global CRIS, else +10% |
 | GPT-5.6 Terra | GPT-5.6 Terra  | `openai.gpt-5.6-terra` / `us.` `in.` `global.` prefixed | `strong_migrate` — same model; parity on Global CRIS, else +10% |
 | GPT-5.6 Luna  | GPT-5.6 Luna   | `openai.gpt-5.6-luna` / `us.` `in.` `global.` prefixed  | `strong_migrate` — same model; parity on Global CRIS, else +10% |
@@ -91,12 +92,13 @@ in-region residency, the mantle region must match. Otherwise offer a supported r
 with explicit routing consent; a Global-only caller region cannot satisfy a Geo-only requirement.
 If neither path meets the constraints, offer a supported region or a model change under Tier 1.
 Do not assume GPT-5.6's broader regional footprint applies to Astra.
-**GPT-6 Astra / Sol / Luna / 6.1 Sol:** same shape as GPT-5.6 — if the target region is in the mantle in-region
-matrix (narrower than GPT-5.6's: us-east-1 + us-west-2 for Astra only, us-east-1 only for Sol/Luna/6.1 Sol — see
-`openai-on-bedrock.md` § Regional Availability), either endpoint works; otherwise the `bedrock-runtime` CRIS path
-(`us.`/`global.` prefixed) covers broad commercial regions. GPT-6 Astra's CRIS path additionally lacks `Invoke`
-support (Responses/Chat Completions/Converse only) — verify per-feature before assuming parity with Sol/Luna/6.1
-Sol.
+**GPT-6 Astra / Sol / Luna / 6.1 Sol / 6.1 Terra:** same shape as GPT-5.6 — if the target region is in the mantle
+in-region matrix (narrower than GPT-5.6's: us-east-1 + us-west-2 for Astra only, us-east-1 only for Sol/Luna/6.1 Sol;
+us-east-1 confirmed for 6.1 Terra, its other card-listed mantle regions unverified — see `openai-on-bedrock.md`
+§ Regional Availability), either endpoint works; otherwise the `bedrock-runtime` CRIS path (`us.`/`global.`
+prefixed) covers broad commercial regions. GPT-6 Astra's CRIS path additionally lacks `Invoke` support
+(Responses/Chat Completions/Converse only), and GPT-6.1 Terra's Guardrails are Converse-only — verify per-feature
+before assuming parity with Sol/Luna/6.1 Sol.
 
 **GPT-5.6 Sol / Terra / Luna:** rarely blocked. If the target region is in the mantle in-region matrix, either
 endpoint works. If not, the `bedrock-runtime` CRIS path (Geo `us.`/`in.`, Global `global.`) covers most commercial

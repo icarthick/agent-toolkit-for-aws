@@ -146,6 +146,7 @@ _SOURCE_MODEL_KEYS = {
     "gpt-6-sol": "openai_gpt_6_sol",
     "gpt-6-luna": "openai_gpt_6_luna",
     "gpt-6.1-sol": "openai_gpt_6_1_sol",
+    "gpt-6.1-terra": "openai_gpt_6_1_terra",
 }
 
 

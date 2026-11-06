@@ -198,15 +198,17 @@ def test_mantle_model_detection_excludes_gpt_oss_and_cris_forms():
 
 
 def test_is_mantle_model_matches_bare_gpt6_ids():
-    # Bare GPT-6 ids (Astra, Sol, Luna, 6.1 Sol) are mantle-served, same as the
+    # Bare GPT-6 ids (Astra, Sol, Luna, 6.1 Sol, 6.1 Terra) are mantle-served, same as the
     # bare GPT-5.x ids above. Their CRIS forms (us./global. prefixed) stay on the
     # standard Converse/runtime path, unchanged.
     assert p.is_mantle_model("openai.gpt-6-astra") is True
     assert p.is_mantle_model("openai.gpt-6-sol") is True
     assert p.is_mantle_model("openai.gpt-6-luna") is True
     assert p.is_mantle_model("openai.gpt-6.1-sol") is True
+    assert p.is_mantle_model("openai.gpt-6.1-terra") is True
     assert p.is_mantle_model("us.openai.gpt-6-sol") is False
     assert p.is_mantle_model("global.openai.gpt-6.1-sol") is False
+    assert p.is_mantle_model("us.openai.gpt-6.1-terra") is False
     assert p.is_mantle_model("openai.gpt-oss-120b-1:0") is False
 
 

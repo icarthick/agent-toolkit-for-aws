@@ -25,6 +25,7 @@ risk) all defer to it. Do not restate model IDs, regions, or endpoint paths else
 | ------------------- | ---------------------------------------- | ------------ | ------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GPT-6 Astra         | `openai.gpt-6-astra`                     | Sep 8, 2026  | 1.05M   | Active    | [card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-openai-gpt-6-astra.html)                                                      |
 | GPT-6.1 Sol         | `openai.gpt-6.1-sol`                     | Sep 29, 2026 | 1.05M   | Active    | [card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-openai-gpt-6-1-sol.html)                                                      |
+| GPT-6.1 Terra       | `openai.gpt-6.1-terra`                   | Oct 26, 2026 | 1.05M   | Active    | [card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-openai-gpt-6-1-terra.html)                                                    |
 | GPT-6 Sol           | `openai.gpt-6-sol`                       | Sep 22, 2026 | 1.05M   | Active    | [card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-openai-gpt-6-sol.html)                                                        |
 | GPT-6 Luna          | `openai.gpt-6-luna`                      | Sep 22, 2026 | 1.05M   | Active    | [card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-openai-gpt-6-luna.html)                                                       |
 | GPT-5.6 Sol         | `openai.gpt-5.6-sol`                     | Jul 13, 2026 | 1M      | Active    | [card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-openai-gpt-56-sol.html)                                                       |
@@ -40,9 +41,12 @@ risk) all defer to it. Do not restate model IDs, regions, or endpoint paths else
 **Naming:** GPT-5.6 uses generation number + capability tier. `Sol` = flagship reasoning, `Terra` = balanced
 production, `Luna` = high-volume / low-latency. Tiers advance on independent cadences, so a future `Terra` may not
 share a generation with a future `Sol`. **GPT-6** carries forward `Sol` and `Luna`, and adds a new top-of-stack
-`Astra` tier above Sol; no GPT-6 `Terra` tier has been confirmed on Bedrock as of this refresh.
+`Astra` tier above Sol; the first GPT-6-generation `Terra` tier is GPT-6.1 Terra (below).
 **GPT-6.1 Sol** is a point-release upgrade to GPT-6 Sol (same tier, improved capability, a deeper cache-read
 discount) — not a new tier name (cite [openai.com/index/introducing-gpt-6-1-sol/](https://openai.com/index/introducing-gpt-6-1-sol/)).
+**GPT-6.1 Terra** is the newest model in the Terra line (balanced production), per its
+[model card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-openai-gpt-6-1-terra.html). Sources disagree on its launch date: the card states Oct 26, 2026, while
+`GetFoundationModel` returns `startOfLifeTime` 2026-10-23; this file uses the card date, as for the other GPT-6 rows.
 
 GPT-6 Astra is the newest, most capable OpenAI model in this catalog. Sol remains an Active,
 lower-cost reasoning alternative; Astra does not make existing GPT-5.x sources require a model upgrade.
@@ -117,23 +121,31 @@ Constraints that still break naive assumptions:
 
 GPT-6 Astra and GPT-6.1 Sol support a new **Ultrafast** service tier (`service_tier: "ultrafast"`) at 6x Standard
 pricing, in addition to Standard — confirmed on both model cards' "Service Tiers" sections. GPT-6 Sol and GPT-6
-Luna's model cards list only Standard. **None of the four GPT-6 models support Priority, Flex, or Reserved** —
+Luna's model cards list only Standard. GPT-6.1 Terra's card states that Priority and Flex are not supported and
+documents no Ultrafast tier (its Reserved support is unverified). **None of the four models GPT-6 Astra / Sol / Luna /
+6.1 Sol support Priority, Flex, or Reserved** —
 same as the GPT-5.6 family. This supersedes the blanket "Priority and Flex are not supported for these models"
 line elsewhere in this file for the GPT-6 family specifically: treat tier support as per-model, not blanket, going
 forward.
 
 GPT-6 Astra's `bedrock-mantle` endpoint is available in **both us-east-1 and us-west-2** (Standard in both;
-Ultrafast in us-east-1 only). GPT-6 Sol, GPT-6 Luna, and GPT-6.1 Sol's `bedrock-mantle` is **us-east-1 only**. All
+Ultrafast in us-east-1 only). GPT-6 Sol, GPT-6 Luna, and GPT-6.1 Sol's `bedrock-mantle` is **us-east-1 only**.
+GPT-6.1 Terra's `bedrock-mantle` is confirmed in **us-east-1** (the card's sample endpoint); the card also lists
+us-east-2, us-west-2, us-gov-west-1 and us-gov-east-1 rows whose support cells are unverified. The first
 four additionally reach a broad set of commercial regions via `bedrock-runtime` CRIS (`us.` / `global.` prefixes),
-matching the GPT-5.6 CRIS-breadth pattern. API support is NOT uniform across the four: GPT-6 Sol,
-GPT-6 Luna, and GPT-6.1 Sol support `Responses`, `Chat Completions`, `Converse`, AND `Invoke` on
-`bedrock-runtime` (Invoke is NOT available on `bedrock-mantle` for any of the four — mantle supports
+matching the GPT-5.6 CRIS-breadth pattern; GPT-6.1 Terra has the same `us.` / `global.` profiles, with only its US Geo
+source regions confirmed (see § Regional Availability). API support is NOT uniform across the five: GPT-6 Sol,
+GPT-6 Luna, GPT-6.1 Sol, and GPT-6.1 Terra support `Responses`, `Chat Completions`, `Converse`, AND `Invoke` on
+`bedrock-runtime` (Invoke is NOT available on `bedrock-mantle` for any of the five — mantle supports
 only `Responses` and `Chat Completions` across the whole GPT-6/5.6 family). **GPT-6 Astra does NOT
 support `Invoke` on either endpoint** — Astra's `bedrock-runtime` surface is `Responses`, `Chat
 Completions`, and `Converse` only, and its `bedrock-mantle` surface is `Responses` and `Chat
 Completions` only (no `Converse`, no `Invoke`). Do not assume uniform API support across the GPT-6
 family — verify per-model, per-endpoint on the model card before approving an `InvokeModel` call
-path for any GPT-6 model.
+path for any GPT-6 model. **GPT-6.1 Terra's runtime feature split is narrower than GPT-6.1 Sol's:** Guardrails and
+application inference profiles are Converse-only, explicit prompt caching is Responses-only, and JSON Schema
+structured outputs are documented for non-streaming Responses / Chat Completions / Converse calls only. Its
+Converse surface rejects `document` content blocks.
 
 ### Client setup
 
@@ -182,6 +194,7 @@ request for multi-turn and tool-calling flows.
 | GPT-6 Sol     | yes       | —         | —         | —             | —             |
 | GPT-6 Luna    | yes       | —         | —         | —             | —             |
 | GPT-6.1 Sol   | yes       | —         | —         | —             | —             |
+| GPT-6.1 Terra | yes       | _unverified_ | _unverified_ | _unverified_ | _unverified_ |
 | GPT-5.6 Sol   | yes       | yes       | —         | —             | —             |
 | GPT-5.6 Terra | yes       | yes       | yes       | yes           | yes           |
 | GPT-5.6 Luna  | yes       | yes       | yes       | yes           | yes           |
@@ -195,8 +208,11 @@ Terra and Luna reached AWS GovCloud (US-West, US-East) in August 2026 — newer 
 `eu-west-1`, `eu-west-2`, `eu-west-3`, `ap-northeast-1`, `ap-northeast-2`, `ap-northeast-3`,
 `ap-south-1`, `ap-southeast-1`, `ap-southeast-2`, and `sa-east-1`. No EU/India Geo profile or
 GovCloud region is listed on the Astra card. A Canada caller using US Geo still routes to the US.
+**GPT-6.1 Terra runtime availability:** US Geo CRIS (`us.openai.gpt-6.1-terra`) can be called from `us-east-1`,
+`us-east-2`, `us-west-1`, `us-west-2`, `ca-central-1`, and `ca-west-1` (the card's Geo: US table). Global CRIS
+source regions beyond these are unverified: the card's runtime availability cells could not be read.
 **GPT-6 Astra's mantle reach is us-east-1 and us-west-2; GPT-6 Sol, GPT-6 Luna, and GPT-6.1 Sol are us-east-1
-only.** All four additionally reach broad commercial regions via `bedrock-runtime` CRIS (`us.` / `global.`
+only; GPT-6.1 Terra is confirmed in us-east-1.** All five additionally reach regions outside the mantle matrix via `bedrock-runtime` CRIS (`us.` / `global.`
 inference profiles), same as GPT-5.6 — a region outside the mantle matrix does not block the same-model path for
 any GPT-6 model, it just means using the runtime endpoint with a CRIS id.
 
@@ -224,12 +240,12 @@ So the honest cost statement is conditional, not flat: a same-model GPT-5.6 move
 same Global-CRIS-is-cost-neutral / in-Region-and-Geo-is-~10%-more pattern applies to the GPT-6 family below.
 Never state either number without stating the inference option it belongs to.
 
-### GPT-6 Astra / Sol / Luna / 6.1 Sol — short context (≤272K)
+### GPT-6 Astra / Sol / Luna / 6.1 Sol / 6.1 Terra — short context (≤272K)
 
 Read off each model's own AWS Bedrock model card (fetched 2026-10-10) and OpenAI's own pricing page
 ([developers.openai.com/api/docs/pricing](https://developers.openai.com/api/docs/pricing)). Global CRIS rates
 equal OpenAI's own standard rates (stated explicitly on every GPT-6 model card); In-Region and Geo/US-CRIS carry
-the familiar 10% premium.
+the familiar 10% premium. GPT-6.1 Terra's rows were read off its AWS model card only, on 2026-11-06.
 
 | Model       | In-Region/Geo-CRIS (in · cache-write · cache-read · out) | Global CRIS (in · cache-write · cache-read · out) |
 | ----------- | ---------------------------------------------------------- | ---------------------------------------------------- |
@@ -237,11 +253,14 @@ the familiar 10% premium.
 | GPT-6 Sol   | 2.20 · 2.75 · 0.22 · 11.00                                  | 2.00 · 2.50 · 0.20 · 10.00                           |
 | GPT-6 Luna  | 0.11 · 0.1375 · 0.011 · 0.55                                | 0.10 · 0.125 · 0.01 · 0.50                           |
 | GPT-6.1 Sol | 2.20 · 2.75 · 0.11 · 11.00                                  | 2.00 · 2.50 · 0.10 · 10.00                           |
+| GPT-6.1 Terra | 1.10 · 1.375 · 0.055 · 5.50                              | 1.00 · 1.25 · 0.05 · 5.00                            |
 
 GPT-6.1 Sol's cache-read rate is deeper (0.05x vs the other three models' 0.10x) — this is the one real pricing
 differentiator between Sol and 6.1 Sol beyond the base model upgrade; input/output are identical between the two.
+GPT-6.1 Terra uses the same 0.05x cache-read ratio. Its card states that In-Region prices include a 10% fee over
+OpenAI rates, so its Global CRIS rate (1.00 / 5.00) is the OpenAI standard rate.
 
-### GPT-6 Astra / Sol / Luna / 6.1 Sol — long context (>272K input; full request repriced)
+### GPT-6 Astra / Sol / Luna / 6.1 Sol / 6.1 Terra — long context (>272K input; full request repriced)
 
 | Model       | In-Region/Geo-CRIS (in · cache-write · cache-read · out) | Global CRIS (in · cache-write · cache-read · out) |
 | ----------- | ---------------------------------------------------------- | ---------------------------------------------------- |
@@ -249,9 +268,10 @@ differentiator between Sol and 6.1 Sol beyond the base model upgrade; input/outp
 | GPT-6 Sol   | 4.40 · 5.50 · 0.44 · 16.50                                  | 4.00 · 5.00 · 0.40 · 15.00                           |
 | GPT-6 Luna  | 0.22 · 0.275 · 0.022 · 0.825                                | 0.20 · 0.25 · 0.02 · 0.75                            |
 | GPT-6.1 Sol | 4.40 · 5.50 · 0.22 · 16.50                                  | 4.00 · 5.00 · 0.20 · 15.00                           |
+| GPT-6.1 Terra | 2.20 · 2.75 · 0.11 · 8.25                                 | 2.00 · 2.50 · 0.10 · 7.50                            |
 
-Context window is **1.05M tokens** for all four models (confirmed on every model card); a workload above 272K
-context must be priced at this long-context tier. Max output tokens: 128,000 (Astra, Sol, Luna) / 131,072
+Context window is **1.05M tokens** for all five models (confirmed on every model card); a workload above 272K
+context must be priced at this long-context tier. Max output tokens: 128,000 (Astra, Sol, Luna, 6.1 Terra) / 131,072
 (6.1 Sol).
 
 Astra cache-write rates use a **30-minute cache-write** window. Verify the source
@@ -294,7 +314,9 @@ Astra separately lists implicit and explicit caching on mantle Responses, with r
 Its card does not establish the GPT-5.6 minimum-prefix, breakpoint, or quota-exemption rules below.
 
 Listed as a supported feature on the GPT-5.6 Sol/Terra/Luna model cards and on all four GPT-6 model cards (Astra,
-Sol, Luna, 6.1 Sol — confirmed by the cache-write/cache-read columns in the GPT-6 pricing tables above). The
+Sol, Luna, 6.1 Sol — confirmed by the cache-write/cache-read columns in the GPT-6 pricing tables above) and on the
+GPT-6.1 Terra card (implicit caching on runtime Responses / Chat Completions / InvokeModel / Converse and mantle
+Responses; explicit caching on Responses only, on both endpoints). The
 GPT-5.5 and GPT-5.4 cards list client-side tool calling in that slot instead and do **not** list prompt caching.
 Do not assume caching on 5.5/5.4.
 
@@ -390,3 +412,5 @@ This model family is moving fast (two GA waves and a repricing inside 10 weeks).
    2026), and GPT-6.1 Sol (GA Sep 29, 2026) are all confirmed on Bedrock with their own model cards and pricing
    tables. New discovery this refresh: a 6x-Standard **Ultrafast** service tier on Astra and 6.1 Sol only (Sol and
    Luna remain Standard-only) — the first new tier shape since this file started tracking the family.
+9. **2026-11-06 — GPT-6.1 Terra added.** Only its rows were sourced in this change (model card and
+   `GetFoundationModel`, us-east-1); the rest of the file keeps its **Last verified** date.

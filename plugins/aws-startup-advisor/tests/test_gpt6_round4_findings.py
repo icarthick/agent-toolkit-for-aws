@@ -140,7 +140,7 @@ def test_guardrails_canonical_and_vendored_name_gpt6_family() -> None:
 
 def test_openai_guide_canonical_and_vendored_region_gate_names_gpt6() -> None:
     text = OPENAI_GUIDE_CANONICAL.read_text(encoding="utf-8")
-    assert "GPT-6 Astra / Sol / Luna / 6.1 Sol:" in text, (
+    assert "GPT-6 Astra / Sol / Luna / 6.1 Sol / 6.1 Terra:" in text, (
         "ai-openai-to-bedrock.md Region gate section must have a GPT-6 bullet"
     )
     for vendored in OPENAI_GUIDE_VENDORED:
@@ -204,6 +204,7 @@ def test_report_generator_section_6_2_has_gpt6_source_rows() -> None:
     expected_rows = {
         "gpt-6-astra": ("10.00", "50.00"),
         "gpt-6.1-sol": ("2.00", "10.00"),
+        "gpt-6.1-terra": ("1.00", "5.00"),
         "gpt-6-sol": ("2.00", "10.00"),
         "gpt-6-luna": ("0.10", "0.50"),
     }

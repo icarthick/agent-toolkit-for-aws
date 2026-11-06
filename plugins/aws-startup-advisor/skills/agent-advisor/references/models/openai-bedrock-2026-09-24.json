@@ -453,6 +453,31 @@
         "runtime_converse": {"available": true, "model_id": "openai.gpt-6.1-sol", "requires_cris": true, "evidence": "AWS model card: US and Global CRIS support Responses, Chat Completions, Converse, and Invoke; EU/AU Geo profiles are unsupported."}
       }
     },
+    "openai_gpt_6_1_terra": {
+      "display_name": "OpenAI GPT-6.1 Terra (on Bedrock)",
+      "family": "openai_gpt_6",
+      "generation": "reasoning",
+      "version": "6.1",
+      "class": "reasoning",
+      "context_window": 1050000,
+      "output_token_ceiling": 128000,
+      "inference_profiles": {
+        "us": ["us-east-1", "us-east-2", "us-west-1", "us-west-2", "ca-central-1", "ca-west-1"],
+        "global": []
+      },
+      "region_availability": {
+        "commercial": ["us-east-1"],
+        "govcloud": [],
+        "evidence": "AWS GPT-6.1 Terra model card, retrieved 2026-11-06: Mantle sample endpoint in us-east-1. The card's Mantle table also lists us-east-2, us-west-2, us-gov-west-1 and us-gov-east-1, but their support cells could not be read, so they are not cataloged."
+      },
+      "capabilities": ["reasoning", "image_input_vision"],
+      "capability_source": "AWS GPT-6.1 Terra model card, retrieved 2026-11-06: text and image input (GetFoundationModel us-east-1: input TEXT and IMAGE, output TEXT), reasoning summaries, JSON Schema structured outputs, 1,050,000 context and 128,000 output. The card does not state client-side function calling, so tool_or_function_calling is not cataloged.",
+      "paths": {
+        "mantle_openai_responses": {"available": true, "model_id": "openai.gpt-6.1-terra", "requires_cris": false, "evidence": "AWS model card: Mantle Responses (/openai/v1/responses) in us-east-1."},
+        "mantle_openai_chat": {"available": true, "model_id": "openai.gpt-6.1-terra", "requires_cris": false, "evidence": "AWS model card: Mantle Chat Completions (/openai/v1/chat/completions) supported."},
+        "runtime_converse": {"available": true, "model_id": "openai.gpt-6.1-terra", "requires_cris": true, "evidence": "AWS model card: bedrock-runtime via us. and global. CRIS only, no in-Region form; Guardrails and application inference profiles are Converse-only. US Geo source Regions us-east-1, us-east-2, us-west-1, us-west-2, ca-central-1 and ca-west-1 are read off the card's Geo: US table; Global source Regions could not be read, so none are cataloged."}
+      }
+    },
     "anthropic_claude_sonnet_5": {
       "display_name": "Claude Sonnet 5 (Converse tier match for GPT-5.6 Terra / 5.5 / 5.4)",
       "family": "anthropic_claude",
