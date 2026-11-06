@@ -1,3 +1,50 @@
+---
+_phase: design
+_title: "Design AWS Architecture"
+_requires_phase: clarify
+_input:
+  - preferences.json
+  - gcp-resource-inventory.json
+  - gcp-resource-clusters.json
+  - billing-profile.json
+  - ai-workload-profile.json
+_fragments:
+  - _id: infra
+    _trigger: { _when: "gcp-resource-inventory.json AND gcp-resource-clusters.json both exist in $MIGRATION_DIR" }
+    _file: phases/design/design-infra.md
+  - _id: billing
+    _trigger: { _when: "billing-profile.json exists with non-empty services[] AND gcp-resource-inventory.json does NOT exist (a skip-record billing profile does not count)" }
+    _file: phases/design/design-billing.md
+  - _id: ai
+    _trigger: { _when: "ai-workload-profile.json exists in $MIGRATION_DIR; runs after the infra or billing design completes" }
+    _file: phases/design/design-ai.md
+_produces:
+  - { file: aws-design.json, _when: "the infra route is active" }
+  - { file: aws-design-billing.json, _when: "the billing-only route is active" }
+  - { file: aws-design-ai.json, _when: "the AI route is active" }
+_advances_to: estimate
+_interactive: true
+_re_entry_guard:
+  _stale_if_completed: estimate
+  _stale_artifact: estimation-infra.json
+  _on_reentry: stop_unless_confirmed
+  _on_confirm: reset_downstream_to_pending
+_preconditions:
+  - _check_phase_completed: clarify
+    _on_failure: _halt_and_inform
+  - _check_single_active_phase: true
+    _on_failure: _halt_and_inform
+  - _check_file_exists: preferences.json
+    _on_failure: _halt_and_inform
+  - _assert: "at least one discovery artifact exists: gcp-resource-inventory.json, gcp-resource-clusters.json, billing-profile.json, or ai-workload-profile.json"
+    _on_failure: _halt_and_inform
+_postconditions:
+  - _assert: "Phase Completion: at least one design route is active (infra, billing-only, or AI, per the route rules above)"
+    _on_failure: _halt_and_inform
+  - _assert: "Phase Completion: every active route produced its artifact — infra route aws-design.json, billing-only route aws-design-billing.json, AI route aws-design-ai.json"
+    _on_failure: _halt_and_inform
+---
+
 # Phase 3: Design AWS Architecture (Orchestrator)
 
 ## Telemetry boundary

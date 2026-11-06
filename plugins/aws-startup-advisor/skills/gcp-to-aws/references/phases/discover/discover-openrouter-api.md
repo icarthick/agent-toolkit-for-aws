@@ -1,3 +1,11 @@
+---
+_fragment: openrouter-api
+_of_phase: discover
+_contributes:
+  - { file: openrouter-usage-profile.json, _when: "consent given and the /activity capture is ok" }
+  - { file: ai-workload-profile.json, _when: "that profile exists: current_costs filled with real spend" }
+---
+
 # Discover Phase: OpenRouter Usage API Discovery
 
 > Self-contained OpenRouter usage discovery sub-file. Captures real cost and

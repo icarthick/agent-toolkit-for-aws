@@ -1,3 +1,29 @@
+---
+_phase: feedback
+_title: "Feedback (Optional)"
+_kind: sidebar
+_requires_phase: discover
+_input:
+  - .phase-status.json
+_trigger: { _when: "the user opts in at a feedback sidebar (after Discover, or after the post-Estimate Decision gate resolves to A or C)" }
+_fragments:
+  - _id: trace
+    _trigger: { _always: true }
+    _file: phases/feedback/feedback-trace.md
+_produces:
+  - feedback.json
+  - { file: trace.json, _when: "trace building succeeded (trace_included is true)" }
+_interactive: true
+_preconditions:
+  - _check_phase_completed: discover
+    _on_failure: _halt_and_inform
+_postconditions:
+  - _check_file_exists: feedback.json
+    _on_failure: _halt_and_inform
+  - _assert: "if feedback.json trace_included is true, trace.json exists"
+    _on_failure: _halt_and_inform
+---
+
 # Phase 6: Feedback (Optional)
 
 Builds an anonymized usage trace and directs the user to the Pulse survey form.

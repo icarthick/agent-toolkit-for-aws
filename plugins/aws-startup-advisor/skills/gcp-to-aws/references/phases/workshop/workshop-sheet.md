@@ -1,3 +1,10 @@
+---
+_fragment: sheet
+_of_phase: workshop
+_contributes:
+  - preferences.json (patched cost-shaping knobs, before a reprice)
+---
+
 # Workshop — Assumption Sheet (GCP)
 
 > Confirm-first sheet (same UX as Clarify's Assumption-Sheet Wizard, but **post-

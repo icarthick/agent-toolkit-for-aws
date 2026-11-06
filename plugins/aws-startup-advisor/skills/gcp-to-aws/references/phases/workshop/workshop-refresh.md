@@ -1,3 +1,11 @@
+---
+_fragment: refresh
+_of_phase: workshop
+_contributes:
+  - scenarios/index.json
+  - preferences.json (patched knobs; inner Design and Estimate rewrite the design and estimate artifacts)
+---
+
 # Workshop — Refresh (patch → Design → Estimate → snapshot)
 
 ## Inner runs (artifact-only) — mandatory

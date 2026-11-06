@@ -1,3 +1,14 @@
+---
+_assemble: assemble-report
+_of_phase: generate
+_reads:
+  - infra, ai, billing (generation-*.json plans)
+  - artifacts-infra, artifacts-scripts, artifacts-ai, artifacts-billing (generated artifacts, when triggered)
+  - artifacts-docs (MIGRATION_GUIDE.md, README.md)
+_produces:
+  - { file: migration-report.html, _when: "shared/validate-artifacts.md passed and the report validator did not return REPORT_FAIL" }
+---
+
 # Generate Phase: HTML Migration Report
 
 > Loaded by generate.md AFTER generate-artifacts-docs.md completes.

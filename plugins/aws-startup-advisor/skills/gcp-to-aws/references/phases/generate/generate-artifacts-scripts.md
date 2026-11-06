@@ -1,3 +1,10 @@
+---
+_fragment: artifacts-scripts
+_of_phase: generate
+_contributes:
+  - scripts/
+---
+
 # Generate Phase: Migration Script Generation
 
 > Loaded by generate.md after generate-artifacts-infra.md completes (terraform files generated).

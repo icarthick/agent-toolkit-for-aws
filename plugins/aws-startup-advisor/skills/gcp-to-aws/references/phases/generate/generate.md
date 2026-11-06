@@ -1,3 +1,81 @@
+---
+_phase: generate
+_title: "Generate Migration Artifacts"
+_requires_phase: estimate
+_input:
+  - preferences.json
+  - { file: estimation-infra.json, _when: "the infra route is active" }
+  - { file: aws-design.json, _when: "the infra route is active" }
+  - { file: estimation-ai.json, _when: "the AI route is active" }
+  - { file: aws-design-ai.json, _when: "the AI route is active" }
+  - { file: estimation-billing.json, _when: "the billing-only route is active" }
+  - { file: aws-design-billing.json, _when: "the billing-only route is active" }
+_fragments:
+  - _id: infra
+    _trigger: { _when: "Stage 1: estimation-infra.json exists" }
+    _file: phases/generate/generate-infra.md
+  - _id: ai
+    _trigger: { _when: "Stage 1: estimation-ai.json exists" }
+    _file: phases/generate/generate-ai.md
+  - _id: billing
+    _trigger: { _when: "Stage 1: estimation-billing.json exists" }
+    _file: phases/generate/generate-billing.md
+  - _id: artifacts-infra
+    _trigger: { _when: "Stage 2, after Stage 1: generation-infra.json AND aws-design.json exist" }
+    _file: phases/generate/generate-artifacts-infra.md
+  - _id: artifacts-scripts
+    _trigger: { _when: "Stage 2: after generate-artifacts-infra.md completes" }
+    _file: phases/generate/generate-artifacts-scripts.md
+  - _id: artifacts-ai
+    _trigger: { _when: "Stage 2: generation-ai.json AND aws-design-ai.json exist" }
+    _file: phases/generate/generate-artifacts-ai.md
+  - _id: artifacts-billing
+    _trigger: { _when: "Stage 2: generation-billing.json AND aws-design-billing.json exist" }
+    _file: phases/generate/generate-artifacts-billing.md
+  - _id: artifacts-docs
+    _trigger: { _always: true }
+    _file: phases/generate/generate-artifacts-docs.md
+_assemble:
+  _file: phases/generate/generate-artifacts-report.md
+_produces:
+  - { file: generation-infra.json, _when: "estimation-infra.json exists" }
+  - { file: generation-ai.json, _when: "estimation-ai.json exists" }
+  - { file: generation-billing.json, _when: "estimation-billing.json exists" }
+  - { file: terraform/, _when: "the infra artifact route is active" }
+  - { file: scripts/, _when: "the infra artifact route is active" }
+  - { file: validation-report.json, _when: "the infra artifact route is active" }
+  - { file: artifact-validation-status.json, _when: "the infra artifact route is active" }
+  - { file: ai-migration/, _when: "the AI artifact route is active" }
+  - { file: terraform/skeleton.tf, _when: "the billing artifact route is active" }
+  - MIGRATION_GUIDE.md
+  - README.md
+  - { file: migration-report.html, _when: "shared/validate-artifacts.md passed and the report validator did not return REPORT_FAIL (the report is non-blocking output)" }
+_advances_to: complete
+_interactive: true
+_preconditions:
+  - _check_phase_completed: estimate
+    _on_failure: _halt_and_inform
+  - _check_phase_completed: workshop
+    _on_failure: _halt_and_inform
+  - _check_single_active_phase: true
+    _on_failure: _halt_and_inform
+  - _assert: "run_mode in .phase-status.json is 'decide_and_execute' — set by Decision-gate option C, by accepting the decide-complete or legacy-generate resume offer, or by this file's CONSENT GUARD when this turn's user message is an explicit Execute request. An absent run_mode, or 'decide', is NOT consent: re-present the Decision gate or the resume offer"
+    _on_failure: _halt_and_inform
+  - _check_file_exists: preferences.json
+    _on_failure: _halt_and_inform
+  - _assert: "at least one estimation artifact exists: estimation-infra.json, estimation-ai.json, or estimation-billing.json"
+    _on_failure: _halt_and_inform
+  - _assert: "Compliance-estimate staleness guard: WHEN estimation-infra.json exists and preferences.json design_constraints.compliance.value names soc2, pci, hipaa, or fedramp, estimation-infra.json projected_costs.breakdown carries a security_baseline_compliance entry; otherwise emit the guard's GATE_FAIL (reason=stale_downstream) and do not start Stage 1"
+    _on_failure: _halt_and_inform
+_postconditions:
+  - _assert: "Stage 1 route gates: estimation-infra.json → generation-infra.json; estimation-ai.json → generation-ai.json; estimation-billing.json → generation-billing.json"
+    _on_failure: _halt_and_inform
+  - _assert: "Stage 2 route gates: WHEN the infra artifact route is active, terraform/, scripts/, and validation-report.json exist, validate-terraform-report.py exits 0 on validation-report.json (POLICY_OK), and artifact-validation-status.json has artifact_status ARTIFACTS_OK; WHEN the AI artifact route is active, ai-migration/ exists; WHEN the billing artifact route is active, terraform/skeleton.tf exists"
+    _on_failure: _halt_and_inform
+  - _check_file_exists: [MIGRATION_GUIDE.md, README.md]
+    _on_failure: _halt_and_inform
+---
+
 # Phase 5: Generate Migration Artifacts (Orchestrator)
 
 ## Telemetry boundary

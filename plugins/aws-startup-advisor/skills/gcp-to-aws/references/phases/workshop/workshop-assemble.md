@@ -1,3 +1,14 @@
+---
+_assemble: assemble-workshop
+_of_phase: workshop
+_reads:
+  - sheet (fragment contribution)
+  - refresh (fragment contribution, when triggered)
+  - compare (fragment contribution, when triggered)
+_produces:
+  - scenarios/index.json
+---
+
 # Workshop — Assemble (sidebar resolve)
 
 > Marks the workshop sidebar resolved and returns control to the backbone.

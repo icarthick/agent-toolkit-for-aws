@@ -1,3 +1,48 @@
+---
+_phase: estimate
+_title: "Estimate AWS Costs"
+_requires_phase: design
+_input:
+  - preferences.json
+  - aws-design.json
+  - aws-design-billing.json
+  - aws-design-ai.json
+_fragments:
+  - _id: infra
+    _trigger: { _when: "aws-design.json exists in $MIGRATION_DIR" }
+    _file: phases/estimate/estimate-infra.md
+  - _id: billing
+    _trigger: { _when: "aws-design-billing.json exists AND aws-design.json does NOT exist" }
+    _file: phases/estimate/estimate-billing.md
+  - _id: ai
+    _trigger: { _when: "aws-design-ai.json exists in $MIGRATION_DIR; runs after the infra or billing estimate completes" }
+    _file: phases/estimate/estimate-ai.md
+_produces:
+  - { file: estimation-infra.json, _when: "the infra route is active" }
+  - { file: estimation-billing.json, _when: "the billing-only route is active" }
+  - { file: estimation-ai.json, _when: "the AI route is active" }
+  - { file: decision-report.html, _when: "the user chose Decision-gate option A" }
+  - { file: DECISION.md, _when: "the user chose Decision-gate option A" }
+_advances_to: generate
+_interactive: true
+_preconditions:
+  - _check_phase_completed: design
+    _on_failure: _halt_and_inform
+  - _check_single_active_phase: true
+    _on_failure: _halt_and_inform
+  - _check_file_exists: preferences.json
+    _on_failure: _halt_and_inform
+  - _assert: "at least one design artifact exists: aws-design.json, aws-design-ai.json, or aws-design-billing.json"
+    _on_failure: _halt_and_inform
+_postconditions:
+  - _assert: "Phase Completion: at least one estimate route is active (infra, billing-only, or AI, per the route rules above)"
+    _on_failure: _halt_and_inform
+  - _assert: "Phase Completion: every active route produced its artifact — infra route estimation-infra.json, billing-only route estimation-billing.json, AI route estimation-ai.json"
+    _on_failure: _halt_and_inform
+  - _assert: "WHEN estimation-infra.json exists: recommendation.path is one of {migrate_optimized, migrate_phased, stay}, recommendation.path_label is non-empty, and recommendation.migrate_if and recommendation.stay_if are non-empty arrays"
+    _on_failure: _halt_and_inform
+---
+
 # Phase 4: Estimate AWS Costs (Orchestrator)
 
 ## Telemetry boundary

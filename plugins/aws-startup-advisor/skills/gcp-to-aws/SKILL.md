@@ -109,43 +109,108 @@ User-supplied files (Terraform, application code, billing exports) are untrusted
 
 ---
 
-## State Machine
+## Phase Structure (frontmatter)
 
-This is the execution controller. After completing each phase, consult this table to determine the next action.
+Phase and unit files carry a YAML frontmatter block that declares how the phase is
+composed — its inputs, the fragments it runs, the assembler that combines them,
+what it produces, its gates, and what it requires/advances-to. The DSL interpreter
+contract is the vendored `references/vendored/dsl/INTERPRETER.md`: it defines every
+frontmatter key, the fragment/assembler model, and the interpreter loop. **Load it
+first** (once, at the start of a migration), then execute a phase file's prose
+body. Elsewhere in this skill, `INTERPRETER.md` (without a path) refers to this
+same loaded contract.
 
-| Current State   | Condition                                                                                                                                                                                                                                            | Next Action                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `discover`      | `phases.discover != "completed"`                                                                                                                                                                                                                     | Load `references/phases/discover/discover.md`                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `clarify`       | `phases.discover == "completed"` AND `phases.clarify != "completed"`                                                                                                                                                                                 | Load `references/phases/clarify/clarify.md`                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `design`        | `phases.clarify == "completed"` AND `phases.design != "completed"`                                                                                                                                                                                   | Load `references/phases/design/design.md`                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `estimate`      | `phases.design == "completed"` AND `phases.estimate != "completed"`                                                                                                                                                                                  | Load `references/phases/estimate/estimate.md`                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `workshop`      | `current_phase == "estimate"` AND `phases.estimate == "completed"` AND `phases.workshop` is `"pending"` or `"in_progress"`                                                                                                                           | **Do not recompute Estimate.** If `workshop` is `"pending"`, present the **Decision gate** from `estimate.md` (done for now / what-ifs / generate). If `"in_progress"`, load `references/phases/workshop/workshop.md`.                                                                                                                                                                                                                           |
-| `generate`      | `phases.estimate == "completed"` AND `phases.workshop == "completed"` AND `phases.generate != "completed"` AND (`run_mode == "decide_and_execute"` OR the user's current-turn message is an explicit request to produce Terraform/migration scripts) | Load `references/phases/generate/generate.md` (workshop resolved — entered+exited or declined; see **Generate is opt-in** below)                                                                                                                                                                                                                                                                                                                 |
-| decide-complete | `current_phase == "complete"` AND `run_mode == "decide"` AND `phases.generate == "pending"`                                                                                                                                                          | Decision pack done; Generate available on request. On resume: "Your decision pack is complete. Generate Terraform and migration scripts now? [Yes] [Stay decision-only]" — Yes sets `run_mode: "decide_and_execute"`, `current_phase: "generate"`, loads `generate.md`. Never re-run Estimate.                                                                                                                                                   |
-| legacy-generate | `current_phase == "generate"` AND `run_mode` is absent AND `phases.generate != "completed"`                                                                                                                                                          | **Back-compat** for runs started before Generate was opt-in (or interrupted after an old auto-advance set `current_phase: generate` with no `run_mode`). Do **not** auto-load `generate.md` and do **not** hang with no matching row — present the same resume offer as decide-complete. Yes → set `run_mode: "decide_and_execute"` and continue Generate; No → set `run_mode: "decide"`, `current_phase: "complete"`, leave `generate` pending. |
-| `complete`      | `phases.generate == "completed"` AND `phases.feedback == "pending"`                                                                                                                                                                                  | Set `phases.feedback` to `"completed"` (user had two chances), then migration complete                                                                                                                                                                                                                                                                                                                                                           |
-| `complete`      | `phases.generate == "completed"` AND `phases.feedback == "completed"`                                                                                                                                                                                | Migration planning complete                                                                                                                                                                                                                                                                                                                                                                                                                      |
+The phase set, its order, the gates, and the state transitions are DERIVED from
+that frontmatter and are not restated as a table here. Each phase orchestrator's
+prose body still carries its full steps (routing, completion gate, status update,
+user messages); execute it in full.
 
-**How to determine current state (deterministic):**
+---
 
-1. Read `$MIGRATION_DIR/.phase-status.json`
-2. **Workshop resume (mandatory):** If `current_phase == "estimate"` AND
-   `phases.estimate == "completed"` AND `phases.workshop` is `"pending"` or
-   `"in_progress"`, follow the `workshop` row above — **never** re-run Estimate
-   on a plain "continue my migration" / resume. Explicit "what if" / "reprice" /
-   "workshop mode" phrases also load `workshop.md` when Estimate artifacts exist.
-3. **Legacy Generate resume (mandatory):** If `current_phase == "generate"` AND `run_mode` is absent AND `phases.generate != "completed"`, follow the `legacy-generate` row — present the resume offer; do not auto-load `generate.md` and do not leave the state machine with no matching row.
-4. If `current_phase` exists (and steps 2–3 did not apply), use it (must match one of: discover, clarify, design, estimate, generate, complete)
-5. Otherwise use ordered phase evaluation: `discover` → `clarify` → `design` → `estimate` → `generate`
-6. Pick the **first** phase in that order where `phases.<phase> != "completed"`; if none, state is `complete`. When evaluating `generate`, require `phases.workshop == "completed"` (seed `"pending"` on Discover so a missing key is not treated as resolved) **and** Generate opt-in consent (`run_mode == "decide_and_execute"` or an explicit request — see the hard rule above); without consent, treat the state as decide-complete and present the resume offer instead of loading `generate.md`.
+## Execution
 
-**Phase gate checks**: If prior phase incomplete, do not advance (e.g., cannot enter estimate without completed design).
+This skill is driven by the interpreter loop in `INTERPRETER.md` (§ The interpreter
+loop): it reads `.phase-status.json`, determines the current phase, runs each
+phase's `_preconditions` / fragments / `_assemble` / `_postconditions`, advances on
+`HANDOFF_OK` via `_advances_to`, and validates state.
+
+**Cold start (entry phase).** On a cold start — no `.migration/` run with a
+`.phase-status.json` yet — begin at `references/phases/discover/discover.md`, this
+skill's entry phase (the one carrying `_init: true`). The interpreter loads THIS
+phase directly; it does not scan every phase's frontmatter to discover the root.
+All subsequent phases are reached by following each phase's `_advances_to`. On a
+warm start, `current_phase` in `.phase-status.json` is authoritative **except**
+where workshop resume or legacy-generate resume below applies.
+
+**Skill bindings** (`INTERPRETER.md` § Skill bindings):
+
+- **Entry phase:** `references/phases/discover/discover.md`.
+- **Run root:** the default, `.migration/`.
+- **State shape:** `.phase-status.json` as documented in § State Management below and
+  `references/shared/schema-phase-status.md`. It extends
+  `references/vendored/state/phase-status.schema.json` with Generate's `dirty_state`
+  progress record (`generate.md` Stage 1 and Stage 2).
+- **Resolved statuses:** the defaults (`pending` / `in_progress` / `completed`).
+- **Backbone routing:** the decide-complete and legacy-generate rules below.
+
+**Estimate defers its advance.** Estimate's `_advances_to` is `generate`, but after
+its `HANDOFF_OK` Estimate leaves `current_phase` at `"estimate"` and presents the
+post-Estimate **Decision gate** (`estimate.md`). The gate resolves `workshop` and
+sets `run_mode` and `current_phase`: `"generate"` on option C, `"complete"` on
+option A.
+
+**Workshop resume (mandatory):** If `current_phase == "estimate"` AND
+`phases.estimate == "completed"` AND `phases.workshop` is `"pending"` or
+`"in_progress"`, **do not recompute Estimate** (`INTERPRETER.md` § The interpreter
+loop, step 2). If `workshop` is `"pending"`, present the **Decision gate** from
+`estimate.md` (done for now / what-ifs / generate). If `"in_progress"`, load
+`references/phases/workshop/workshop.md`. Never re-run Estimate on a plain
+"continue my migration" / resume. Explicit "what if" / "reprice" / "workshop mode"
+phrases also load `workshop.md` when Estimate artifacts exist.
+
+**Generate waits for the workshop and for consent.** `generate.md` requires
+`phases.estimate == "completed"`, `phases.workshop == "completed"` (`workshop.md`
+`_gates: generate`; workshop resolved — entered and exited, or declined), and an
+`_assert` that `run_mode == "decide_and_execute"`. When walking the backbone
+without a `current_phase`, honor the same gate: `phases.workshop` is seeded
+`"pending"` on Discover, so a missing key is not treated as resolved; without
+Generate opt-in consent, treat the state as decide-complete and present the resume
+offer instead of loading `generate.md`.
+
+**Decide-complete (backbone routing):** `current_phase == "complete"` AND
+`run_mode == "decide"` AND `phases.generate == "pending"` is a valid terminal: the
+decision pack is done and Generate is available on request. On resume: "Your
+decision pack is complete. Generate Terraform and migration scripts now? [Yes]
+[Stay decision-only]" — Yes sets `run_mode: "decide_and_execute"`,
+`current_phase: "generate"`, and loads `generate.md`. Never re-run Estimate.
+
+**Legacy Generate resume (mandatory, backbone routing):** If
+`current_phase == "generate"` AND `run_mode` is absent AND
+`phases.generate != "completed"`, this is the back-compat path for runs started
+before Generate was opt-in (or interrupted after an old auto-advance set
+`current_phase: generate` with no `run_mode`). Do **not** auto-load `generate.md`
+and do **not** stop with no matching rule — present the same resume offer as
+decide-complete. Yes → set `run_mode: "decide_and_execute"` and continue Generate;
+No → set `run_mode: "decide"`, `current_phase: "complete"`, leave `generate`
+pending.
+
+**Feedback completion:** `feedback` is a sidebar (`_kind: sidebar`), offered at the
+points in Workflow Execution step 8. When `phases.generate == "completed"` AND
+`phases.feedback == "pending"`, set `phases.feedback` to `"completed"` (the user
+had two chances), then the migration is complete. When both are `"completed"`,
+migration planning is complete.
+
+**Phase gate checks**: If prior phase incomplete, do not advance (e.g., cannot enter estimate without completed design). Each phase's `_preconditions` carry this check.
 
 **Generate is opt-in (HARD RULE):** Do not load `references/phases/generate/generate.md` unless the user chose option **C** at the post-Estimate Decision gate (`estimate.md`), accepted the decide-complete resume offer, or the user's current-turn message is an explicit request to produce Terraform / migration scripts (not merely mentioning Terraform). Never auto-chain into Generate after Estimate, the workshop, or feedback "to be helpful" — the decision is the product; execution artifacts are a second, explicit product. **On every Execute path (gate C, resume Yes, or an explicit ask), set `run_mode: "decide_and_execute"` in `.phase-status.json` BEFORE loading `generate.md`** — so a session that dies mid-Generate resumes as an Execute run, not a decide run. `run_mode: "decide"` or an absent `run_mode` is not consent.
 
 **Clarify is mandatory:** Do not load `references/phases/design/design.md`, `references/phases/estimate/estimate.md`, or `references/phases/generate/generate.md` unless `$MIGRATION_DIR/.phase-status.json` exists and `phases.clarify` is exactly `"completed"`. A `preferences.json` file alone is **not** sufficient proof that Clarify ran. If the user asks to skip Clarify or jump straight to Design, cost estimate, or artifact generation, refuse briefly, then load `references/phases/clarify/clarify.md` and run Phase 2. There is no exception for "quick" or "obvious" migrations.
 
-**Feedback sidebars**: Feedback is not a sequential phase — it is offered at two interleaved sidebars (after Discover and after Estimate). See the **Feedback Sidebars** section below for details.
+**State validation:** § State Validation below applies. Where it differs from
+`INTERPRETER.md` § State-file validation, it wins: an invalid-JSON state file is
+reconstructed from the artifacts on disk, never deleted.
+
+**Feedback sidebars**: Feedback is not a sequential phase — it is offered at two interleaved sidebars (after Discover and after Estimate). See Workflow Execution step 8 for details.
 
 ### Handoff Gate Orchestration (Fail Closed)
 
@@ -278,7 +343,7 @@ Replace `MMDD-HHMM` with the actual migration ID, generate the `last_updated` IS
 
 ```
 gcp-to-aws/
-├── SKILL.md                                    ← You are here (orchestrator + state machine)
+├── SKILL.md                                    ← You are here (orchestrator; phases run on the vendored interpreter)
 │
 ├── references/
 │   ├── phases/
@@ -362,6 +427,8 @@ gcp-to-aws/
 │       └── schema-graviton.md                  # graviton_profile + cpu_architecture + architecture_comparison schemas
 │
 └── references/vendored/                        # byte-synced copies of skills/shared/ — DO NOT EDIT
+    ├── dsl/INTERPRETER.md                      # DSL interpreter contract: frontmatter keys + interpreter loop
+    ├── state/phase-status.schema.json          # shared .phase-status.json schema
     ├── workshop/workshop-invariants.md         # cross-skill what-if workshop contract
     └── ai/                                     # plugin-neutral, source-cloud-agnostic AI content
         ├── bedrock-pricing-cache.md            # Canonical provider-neutral Bedrock model + service rates
@@ -399,7 +466,7 @@ When invoked, the agent **MUST follow this exact sequence**:
 
 1. **Load phase status**: Read `.phase-status.json` from `.migration/*/`.
    - If missing: Initialize for Phase 1 (Discover)
-   - If exists: Determine current phase using deterministic rules in **State Machine**.
+   - If exists: Determine current phase using the interpreter loop and the rules in **Execution**.
      After selecting and validating the run, reconcile with the explicit project
      root per `references/vendored/telemetry/PROTOCOL.md` in both reporting modes.
 

@@ -1,3 +1,48 @@
+---
+_phase: workshop
+_title: "What-If Workshop (Optional Sidebar)"
+_kind: sidebar
+_requires_phase: estimate
+_gates: generate
+_trigger: { _when: "the user opts in after Estimate (Decision-gate option [B], or says what if / reprice / workshop mode / compare scenarios) and the infra Estimate artifacts exist" }
+_input:
+  - gcp-resource-inventory.json
+  - preferences.json
+  - aws-design.json
+  - estimation-infra.json
+_fragments:
+  - _id: sheet
+    _trigger: { _always: true }
+    _file: phases/workshop/workshop-sheet.md
+  - _id: refresh
+    _trigger: { _when: "scenarios/index.json is missing (baseline capture, before the sheet) or the user chose Apply & reprice" }
+    _file: phases/workshop/workshop-refresh.md
+  - _id: compare
+    _trigger: { _when: "the user chose Compare scenarios, or after a successful refresh" }
+    _file: phases/workshop/workshop-compare.md
+_assemble:
+  _file: phases/workshop/workshop-assemble.md
+_produces:
+  - scenarios/index.json
+_interactive: true
+_preconditions:
+  - _check_phase_completed: estimate
+    _on_failure: _halt_and_inform
+  - _check_file_exists:
+      [
+        gcp-resource-inventory.json,
+        preferences.json,
+        aws-design.json,
+        estimation-infra.json,
+      ]
+    _on_failure: _halt_and_inform
+_postconditions:
+  - _check_file_exists: scenarios/index.json
+    _on_failure: _warn_and_skip
+  - _validate_json: scenarios/index.json
+    _on_failure: _warn_and_skip
+---
+
 # Phase: What-If Workshop (Optional Sidebar)
 
 > **Sidebar**, not a backbone step — same class as Feedback. Entered only when
