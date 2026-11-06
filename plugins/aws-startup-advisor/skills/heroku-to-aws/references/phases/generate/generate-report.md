@@ -81,6 +81,12 @@ the validator can confirm it matches `estimation-infra.json` `projected_costs.aw
 reader-visible text. The validator asserts the rendered dollars equal the JSON for every
 anchor present. **The `aws_monthly_balanced` anchor is mandatory whenever that JSON value
 exists and `exec-costs` is rendered — a missing anchor is a validator FAIL, not a skip.**
+Likewise, when `estimation-infra.json` carries `cost_comparison.heroku_monthly_baseline`
+(the Heroku baseline the estimate phase persists), wrap the Heroku current-monthly figure
+in `exec-costs` in a `data-cost-key="current_monthly"` attribute — e.g.
+`<span data-cost-key="current_monthly">$340/mo</span>`. **That anchor is mandatory whenever
+the baseline is present (not null) and `exec-costs` is rendered.** With no baseline
+(`cost_comparison` omitted or `heroku_monthly_baseline` null) there is nothing to anchor.
 Only untagged _illustrative_ numbers are skipped.
 
 ### `decision-summary` content (REQUIRED)
@@ -223,7 +229,7 @@ stakeholders, not a design system.
       <table>
         <thead><tr><th scope="col">Service</th><th scope="col">Heroku</th><th scope="col">AWS (Balanced)</th></tr></thead>
         <tbody>…
-          <tr><td>Total</td><td>…</td><td><span data-cost-key="aws_monthly_balanced">$NNN/mo</span></td></tr>
+          <tr><td>Total</td><td><span data-cost-key="current_monthly">$NNN/mo</span></td><td><span data-cost-key="aws_monthly_balanced">$NNN/mo</span></td></tr>
         </tbody>
       </table>
     </section>
@@ -261,7 +267,10 @@ the report is edited — a stub is never acceptable):
 9. When `projected_costs.aws_monthly_balanced` is present, `exec-costs` wraps that
    figure in `<span data-cost-key="aws_monthly_balanced">$NNN/mo</span>` (the
    validator FAILs on a missing anchor — it is how the rendered figure is confirmed
-   against the estimate). The attribute is not reader-visible text.
+   against the estimate). The attribute is not reader-visible text. Likewise, when
+   `cost_comparison.heroku_monthly_baseline` is present (not null), `exec-costs` wraps
+   the Heroku current-monthly figure in
+   `<span data-cost-key="current_monthly">$NNN/mo</span>`.
 10. If `cost_comparison.comparison_status == 'incomplete_unmatched_services'`,
     confirm the unmatched-service caveat is visible text next to the
     Heroku-vs-AWS figure, not only inside `baseline_note`.
