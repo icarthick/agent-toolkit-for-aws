@@ -1,3 +1,15 @@
+---
+_assemble: preview
+_of_phase: discover
+_reads:
+  - iac, live (gcp-resource-inventory.json, gcp-resource-clusters.json)
+  - app-code (ai-workload-profile.json)
+  - billing (billing-profile.json)
+  - openai-api, openrouter-api, anthropic-api (usage profiles)
+_produces:
+  - migration-preview.json
+---
+
 # Migration Preview Heuristic
 
 > Loaded by `discover.md` Step 3 to compute a lightweight preview signal and rough cost

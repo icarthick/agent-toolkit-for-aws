@@ -1,3 +1,11 @@
+---
+_fragment: openai-api
+_of_phase: discover
+_contributes:
+  - { file: openai-usage-profile.json, _when: "consent given and capture happened" }
+  - { file: ai-workload-profile.json, _when: "that profile exists: current_costs filled with real spend" }
+---
+
 # Discover Phase: OpenAI Usage API Discovery
 
 > Self-contained OpenAI usage discovery sub-file. Captures real cost and

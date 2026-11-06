@@ -1,3 +1,10 @@
+---
+_fragment: compare
+_of_phase: workshop
+_contributes:
+  - scenarios/index.json (read-only comparison table, shown in chat)
+---
+
 # Workshop — Compare Scenarios (GCP)
 
 > Read-only table from `scenarios/index.json`.

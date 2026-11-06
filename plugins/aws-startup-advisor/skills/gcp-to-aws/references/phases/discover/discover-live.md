@@ -1,3 +1,12 @@
+---
+_fragment: live
+_of_phase: discover
+_contributes:
+  - { file: gcp-resource-inventory.json, _when: "consent given and capture happened (merged with the IaC inventory, with drift, when both ran)" }
+  - { file: gcp-resource-clusters.json, _when: "consent given and capture happened" }
+  - { file: ai-workload-profile.json, _when: "vertex-publisher-tokens.json has at least one point" }
+---
+
 # Discover Phase: Live Discovery (gcloud CLI)
 
 > Self-contained live-discovery sub-file. Inventories the user's GCP project

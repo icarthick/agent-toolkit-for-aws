@@ -59,6 +59,7 @@ REQUIRED_FILES = {
     "gcp-to-aws": (
         "references/shared/validate-migration-report.md",
         "references/phases/generate/generate.md",
+        "references/vendored/dsl/INTERPRETER.md",
     ),
     "heroku-to-aws": (
         "scripts/validate-heroku-migration-report.py",

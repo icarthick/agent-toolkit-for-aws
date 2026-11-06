@@ -22,6 +22,8 @@ if this skill needs one, add the copy **and** a row in the table below.
 
 | Vendored path                           | Canonical source                                      |
 | --------------------------------------- | ----------------------------------------------------- |
+| `dsl/INTERPRETER.md`                    | `skills/shared/dsl/INTERPRETER.md`                    |
+| `state/phase-status.schema.json`        | `skills/shared/state/phase-status.schema.json`        |
 | `workshop/workshop-invariants.md`       | `skills/shared/workshop/workshop-invariants.md`       |
 | `ai/ai-anthropic-to-bedrock.md`         | `skills/shared/ai/ai-anthropic-to-bedrock.md`         |
 | `ai/ai-capability-catalog.json`         | `skills/shared/ai/ai-capability-catalog.json`         |

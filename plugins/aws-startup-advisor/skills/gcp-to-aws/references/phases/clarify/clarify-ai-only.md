@@ -1,3 +1,10 @@
+---
+_fragment: ai-only
+_of_phase: clarify
+_contributes:
+  - preferences.json (standalone AI-only flow, routed by clarify.md Step 1 Migration Type Detection in place of the fragment/assembler split; writes preferences.json itself)
+---
+
 # AI-Only Migration — Clarify Requirements
 
 **Standalone flow** — Used when ONLY `ai-workload-profile.json` exists (no infrastructure or billing artifacts). Infrastructure stays on GCP; only AI/LLM calls move to AWS Bedrock.

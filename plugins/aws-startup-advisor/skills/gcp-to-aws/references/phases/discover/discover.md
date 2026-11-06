@@ -1,3 +1,65 @@
+---
+_phase: discover
+_title: "Discover GCP Resources"
+_init: true
+_input: workspace
+_fragments:
+  - _id: iac
+    _trigger: { _when: "Step 1a: Terraform files are present in the workspace (**/*.tf, **/*.tfvars, **/*.tfstate, **/.terraform.lock.hcl)" }
+    _file: phases/discover/discover-iac.md
+  - _id: app-code
+    _trigger: { _when: "Step 1b: source code or a dependency manifest is present in the workspace (the Step 1b glob list)" }
+    _file: phases/discover/discover-app-code.md
+  - _id: billing
+    _trigger: { _when: "Step 1c: billing files are present (the Step 1c globs, excluding .migration/**) AND no Terraform files were found in Step 1a. When Terraform is present, discover.md's lightweight billing extraction runs instead and this file loads only as that extraction's no-runtime fallback" }
+    _file: phases/discover/discover-billing.md
+  - _id: live
+    _trigger: { _when: "Step 1d, after iac, app-code and billing: $MIGRATION_DIR/live-capture/manifest.json already exists (resume from its Step 3), or the user accepts the one-time live gcloud offer (a cross-check when Terraform was found, the primary infrastructure source when it was not)" }
+    _file: phases/discover/discover-live.md
+  - _id: openai-api
+    _trigger: { _when: "Step 1e, after Step 1d: ai-workload-profile.json has summary.ai_source openai or both, OR no billing files were found in Step 1c and the user names direct OpenAI or mentions OpenAI usage/spend" }
+    _file: phases/discover/discover-openai-api.md
+  - _id: openrouter-api
+    _trigger: { _when: "Step 1f, after Step 1d: the app-code scan detected an OpenRouter transport, OR no billing files were found in Step 1c and the user names OpenRouter or mentions OpenRouter usage/spend; an existing openrouter-capture/manifest.json resumes per Step 1f" }
+    _file: phases/discover/discover-openrouter-api.md
+  - _id: anthropic-api
+    _trigger: { _when: "Step 1g, after Step 1d: ai-workload-profile.json has summary.ai_source anthropic or both, OR no billing files were found in Step 1c and the user names direct Anthropic/Claude API use or mentions its usage/spend; an existing anthropic-capture/manifest.json resumes per Step 1g" }
+    _file: phases/discover/discover-anthropic-api.md
+_assemble:
+  _file: phases/discover/discover-preview.md
+_produces:
+  - { file: gcp-resource-inventory.json, _when: "the iac or live fragment produced resources" }
+  - { file: gcp-resource-clusters.json, _when: "the iac or live fragment produced resources" }
+  - { file: ai-workload-profile.json, _when: "app-code AI confidence >= 70%, Vertex-strong IaC (discover-iac.md Step 7d), or live Vertex token metrics" }
+  - { file: billing-profile.json, _when: "the billing fragment or the lightweight billing extraction ran" }
+  - { file: openai-usage-profile.json, _when: "the OpenAI usage capture happened" }
+  - { file: openrouter-usage-profile.json, _when: "the OpenRouter usage capture happened with /activity ok" }
+  - { file: anthropic-usage-profile.json, _when: "the Anthropic usage capture happened with at least one ok row" }
+  - { file: migration-preview.json, _when: "any discovery artifact exists" }
+_advances_to: clarify
+_interactive: true
+_re_entry_guard:
+  _stale_if_completed: clarify
+  _stale_artifact: preferences.json
+  _on_reentry: stop_unless_confirmed
+  _on_confirm: reset_downstream_to_pending
+_preconditions:
+  - _check_single_active_phase: true
+    _on_failure: _halt_and_inform
+_postconditions:
+  - _assert: "Completion check 1: at least one discovery artifact exists — gcp-resource-inventory.json, ai-workload-profile.json, or a billing-profile.json with non-empty services[]. A usage profile (OpenAI, OpenRouter, Anthropic) or a skip-record billing-profile.json (empty services[], non-empty warnings[]) never satisfies this on its own"
+    _on_failure: _halt_and_inform
+  - _assert: "Completion check 2: every route output gate in Step 2 passes — each sub-discovery that ran produced its required artifact(s), with the exits Step 2 allows (app-code below 70% confidence, declined consent, a skipped OpenRouter /activity, an all-failed Anthropic capture without retry_pending)"
+    _on_failure: _halt_and_inform
+  - _assert: "Completion check 3: when any discovery artifact exists, migration-preview.json exists with complexity_signal set"
+    _on_failure: _halt_and_inform
+_forbids_files:
+  - README.md
+  - discovery-summary.md
+  - discovery-log.md
+  - "*.txt"
+---
+
 # Phase 1: Discover GCP Resources
 
 Lightweight orchestrator that delegates to domain-specific discoverers. Each sub-discovery file is self-contained — it scans for its own input, processes what it finds, and exits cleanly if nothing is relevant.
@@ -30,7 +92,7 @@ Multiple artifacts can be produced in a single run — they are not mutually exc
      - `[A] Resume: Continue with [latest run]`
      - `[B] Fresh: Create new migration run`
      - `[C] Cancel`
-   - **If resuming:** Set `$MIGRATION_DIR` to the selected run's directory. Read its `.phase-status.json` and skip to the appropriate phase per the State Machine in SKILL.md.
+   - **If resuming:** Set `$MIGRATION_DIR` to the selected run's directory. Read its `.phase-status.json` and skip to the appropriate phase per SKILL.md § Execution.
    - **If fresh or no existing runs:** Continue to step 2.
 2. Create `.migration/[MMDD-HHMM]/` directory (e.g., `.migration/0226-1430/`) using current timestamp (MMDD = month/day, HHMM = hour/minute). Set `$MIGRATION_DIR` to this new directory.
 3. Create `.migration/.gitignore` file (if not already present) with exact content:

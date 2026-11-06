@@ -1,3 +1,10 @@
+---
+_fragment: artifacts-billing
+_of_phase: generate
+_contributes:
+  - terraform/skeleton.tf
+---
+
 # Generate Phase: Billing Skeleton Artifact Generation
 
 > Loaded by generate.md when generation-billing.json and aws-design-billing.json exist.

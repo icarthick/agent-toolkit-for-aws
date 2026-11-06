@@ -1,3 +1,11 @@
+---
+_fragment: artifacts-docs
+_of_phase: generate
+_contributes:
+  - MIGRATION_GUIDE.md
+  - README.md
+---
+
 # Generate Phase: Documentation Generation
 
 > Loaded by generate.md LAST, after all other artifact generation sub-files complete.

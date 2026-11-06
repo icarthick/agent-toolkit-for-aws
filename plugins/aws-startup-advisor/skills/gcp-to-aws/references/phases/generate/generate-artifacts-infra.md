@@ -1,3 +1,11 @@
+---
+_fragment: artifacts-infra
+_of_phase: generate
+_contributes:
+  - terraform/
+  - validation-report.json
+---
+
 # Generate Phase: Infrastructure Artifact Generation
 
 > Loaded by generate.md when generation-infra.json and aws-design.json exist.

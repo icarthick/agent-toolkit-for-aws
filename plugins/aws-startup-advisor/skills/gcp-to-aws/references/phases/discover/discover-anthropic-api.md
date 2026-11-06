@@ -1,3 +1,11 @@
+---
+_fragment: anthropic-api
+_of_phase: discover
+_contributes:
+  - { file: anthropic-usage-profile.json, _when: "consent given and at least one capture row is ok" }
+  - { file: ai-workload-profile.json, _when: "that profile exists: current_costs filled with real spend" }
+---
+
 # Discover Phase: Anthropic Usage API Discovery
 
 > Self-contained Anthropic usage discovery sub-file. Captures real cost and

@@ -69,7 +69,7 @@ def sync(plugin=PLUGIN, write=False):
         target = plugin / "skills" / skill / "references/vendored/telemetry"
         expected.extend((target / name, content) for name, content in files.items())
     interpreter = (plugin / "skills/shared/dsl/INTERPRETER.md").read_bytes()
-    for skill in ("agent-advisor", "azure-to-aws", "heroku-to-aws"):
+    for skill in ("agent-advisor", "azure-to-aws", "gcp-to-aws", "heroku-to-aws"):
         expected.append((plugin / "skills" / skill / "references/vendored/dsl/INTERPRETER.md", interpreter))
     problems = []
     for path, content in expected:
