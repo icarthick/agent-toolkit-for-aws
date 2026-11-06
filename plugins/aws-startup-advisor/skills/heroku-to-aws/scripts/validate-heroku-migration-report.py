@@ -225,15 +225,18 @@ _ANCHOR_INERT_TAGS = {"script", "style", "template"}
 
 
 # data-cost-key anchor -> estimation-infra.json path. Heroku asserts the recommended
-# AWS monthly (Balanced) figure only; the current-spend comparator is a follow-up
-# (Heroku's current_costs key is not yet settled — heroku_monthly_baseline vs _estimated).
+# AWS monthly (Balanced) figure and the current Heroku spend. The current-spend
+# baseline is cost_comparison.heroku_monthly_baseline, the field estimate-cost-engine.md
+# Part 3 persists (Heroku's current_costs holds only source/accuracy metadata); with
+# no baseline Part 3 omits cost_comparison or sets it to null, so the check skips.
 _COST_ANCHORS = {
     "aws_monthly_balanced": ("projected_costs", "aws_monthly_balanced"),
+    "current_monthly": ("cost_comparison", "heroku_monthly_baseline"),
 }
-# Load-bearing key: when its JSON value exists AND exec-costs is present, the anchor
+# Load-bearing keys: when its JSON value exists AND exec-costs is present, the anchor
 # MUST be present (a missing anchor is a FAIL, not a skip — otherwise an un-anchored
 # wrong figure passes, the bug P1-C exists to catch).
-_REQUIRED_COST_KEYS = ("aws_monthly_balanced",)
+_REQUIRED_COST_KEYS = ("aws_monthly_balanced", "current_monthly")
 
 
 class _CostAnchorParser(HTMLParser):
@@ -366,7 +369,8 @@ def _validate_cost_figures(html: str, migration_dir: Path | None) -> list[str]:
 
     Fail direction:
     - No estimation-infra.json / corrupt / not a dict -> skip (fail open on absence).
-    - aws_monthly_balanced present in JSON + exec-costs present -> an anchor MUST
+    - A required key (aws_monthly_balanced, current_monthly) present in JSON +
+      exec-costs present -> an anchor MUST
       exist INSIDE <section id="exec-costs">; a missing anchor there FAILs (an
       un-anchored wrong figure, or an anchor placed elsewhere e.g. decision-summary,
       must not pass) — mirrors validate-migration-report.py's required-anchors

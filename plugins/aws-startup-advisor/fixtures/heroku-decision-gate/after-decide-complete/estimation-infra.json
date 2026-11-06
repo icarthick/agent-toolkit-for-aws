@@ -8,8 +8,32 @@
   },
   "accuracy_confidence": "+/-5-10%",
   "current_costs": {
-    "source": "unavailable",
-    "baseline_note": "no billing"
+    "source": "billing_data"
+  },
+  "cost_comparison": {
+    "heroku_monthly_baseline": 340.0,
+    "baseline_source": "billing_data",
+    "option_a_premium": {
+      "aws_monthly": 265.0,
+      "monthly_difference": -75.0,
+      "annual_difference": -900.0,
+      "percent_change": "-22.1%"
+    },
+    "option_b_balanced": {
+      "aws_monthly": 210.0,
+      "monthly_difference": -130.0,
+      "annual_difference": -1560.0,
+      "percent_change": "-38.2%"
+    },
+    "option_c_optimized": {
+      "aws_monthly": 178.0,
+      "monthly_difference": -162.0,
+      "annual_difference": -1944.0,
+      "percent_change": "-47.6%"
+    },
+    "comparison_status": "complete",
+    "unmatched_deferred_cost": 0,
+    "unmatched_deferred_services": []
   },
   "projected_costs": {
     "aws_monthly_premium": 265.0,

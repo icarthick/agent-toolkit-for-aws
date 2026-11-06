@@ -385,3 +385,61 @@ def test_two_dollar_boundary_canonicalizes_consistently() -> None:
         code, out = run(html, migration_dir=d)
     assert code == 0, out
     assert "REPORT_OK" in out
+
+
+# --- current_monthly: the Heroku baseline (cost_comparison.heroku_monthly_baseline) ---
+
+WITH_BASELINE = GOOD.replace(
+    "</span></p></section>",
+    '</span> vs Heroku <span data-cost-key="current_monthly">$340/mo</span></p></section>',
+    1,
+)
+
+
+def _baseline_dir(tmp: str, baseline: float | None, *, with_comparison: bool = True) -> Path:
+    d = Path(tmp)
+    est: dict = {"projected_costs": {"aws_monthly_balanced": 112}}
+    if with_comparison:
+        est["cost_comparison"] = {"heroku_monthly_baseline": baseline}
+    (d / "estimation-infra.json").write_text(json.dumps(est), encoding="utf-8")
+    return d
+
+
+def test_current_monthly_match_passes() -> None:
+    assert 'data-cost-key="current_monthly"' in WITH_BASELINE
+    with tempfile.TemporaryDirectory() as tmp:
+        code, out = run(WITH_BASELINE, migration_dir=_baseline_dir(tmp, 340.0))
+    assert code == 0, out
+    assert "REPORT_OK" in out
+
+
+def test_current_monthly_wrong_baseline_fails() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        code, out = run(WITH_BASELINE, migration_dir=_baseline_dir(tmp, 352.0))
+    assert code == 1, out
+    assert 'data-cost-key="current_monthly"' in out
+    assert "cost_comparison.heroku_monthly_baseline = $352" in out
+
+
+def test_current_monthly_missing_anchor_fails_when_baseline_present() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        code, out = run(GOOD, migration_dir=_baseline_dir(tmp, 340.0))
+    assert code == 1, out
+    assert 'missing data-cost-key="current_monthly"' in out
+    assert "cost_comparison.heroku_monthly_baseline" in out
+
+
+def test_current_monthly_skipped_when_baseline_null() -> None:
+    # estimate-cost-engine.md Part 3: with no baseline, heroku_monthly_baseline is null.
+    with tempfile.TemporaryDirectory() as tmp:
+        code, out = run(GOOD, migration_dir=_baseline_dir(tmp, None))
+    assert code == 0, out
+    assert "current_monthly" not in out
+
+
+def test_current_monthly_skipped_when_cost_comparison_omitted() -> None:
+    # estimate-cost-engine.md Part 3: with no baseline, cost_comparison may be omitted.
+    with tempfile.TemporaryDirectory() as tmp:
+        code, out = run(GOOD, migration_dir=_baseline_dir(tmp, None, with_comparison=False))
+    assert code == 0, out
+    assert "current_monthly" not in out

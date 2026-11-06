@@ -105,10 +105,11 @@ reader-visible text. The anchor must sit on a rendered element inside `exec-cost
 not in an HTML comment, and not merely somewhere else in the document (a decision-summary
 hero metric does not satisfy this rule). **It is mandatory whenever
 `projected_costs.aws_monthly_balanced` exists and `exec-costs` is rendered — a missing
-anchor is a validator FAIL, not a skip.** The `current_monthly` anchor that the GCP and
-Heroku reports carry does not apply here: this skill records current spend under
-`current_costs.azure_monthly`, which the validator does not map, so only untagged
-illustrative figures remain unchecked.
+anchor is a validator FAIL, not a skip.** Likewise, wrap the current Azure monthly figure
+inside `exec-costs` in a `data-cost-key="current_monthly"` attribute (value =
+`current_costs.azure_monthly`), e.g. `<span data-cost-key="current_monthly">Est. $4,200/mo</span>`;
+**it is mandatory whenever `current_costs.azure_monthly` exists and `exec-costs` is
+rendered.** Only untagged illustrative figures remain unchecked.
 
 ## Step 3: Surface the rest
 
