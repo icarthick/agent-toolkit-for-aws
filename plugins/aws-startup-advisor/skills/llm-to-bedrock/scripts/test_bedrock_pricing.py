@@ -382,3 +382,139 @@ def test_unpriced_mantle_gpt_says_unavailable_not_nonexistent(monkeypatch):
     assert v["available"] is False
     assert "does NOT mean the model is unavailable" in v["note"]
     assert "aws.amazon.com/bedrock/pricing" in v["note"]
+
+
+# --- Same-model matching: a model never gets another model's price -------------
+
+def _family(model_id):
+    # Same model = equal after dropping a trailing :N, -vN and -YYYYMMDD.
+    import re
+    return re.sub(r"-\d{8}$", "", re.sub(r"-v\d+$", "", re.sub(r":\d+$", "", model_id)))
+
+
+def _priced_by_same_model(model_id, result):
+    """True when result's rates are those of a table key for the same model."""
+    rates = (result["input_per_1k_usd"], result["output_per_1k_usd"])
+    return any(_family(key) == _family(model_id)
+               and (val["input_per_1k_usd"], val["output_per_1k_usd"]) == rates
+               for key, val in bp.STATIC_FALLBACK.items())
+
+
+@pytest.mark.parametrize("model_id", [
+    "anthropic.claude-sonnet-5-5",
+    "us.anthropic.claude-sonnet-5-5",
+    "global.anthropic.claude-sonnet-5-5",
+    "eu.anthropic.claude-sonnet-5-5",
+])
+def test_sonnet_5_5_never_gets_the_sonnet_5_entry(model_id):
+    # Regression: base.startswith(key + "-") matched ...claude-sonnet-5-5 to the
+    # ...claude-sonnet-5 key, so a newer family silently got Sonnet 5's price.
+    out = bp._static_fallback(model_id)
+    assert out is None or "matched" not in out["note"], out
+    assert out is None or _priced_by_same_model(model_id, out)
+
+
+def test_unlisted_geo_prefix_for_sonnet_5_5_is_not_priced():
+    # No eu. Sonnet 5.5 row is sourced, so the table returns nothing rather than a
+    # sibling's rate.
+    assert bp._static_fallback("eu.anthropic.claude-sonnet-5-5") is None
+
+
+@pytest.mark.parametrize("prefix", [
+    "anthropic.claude-opus-4",
+    "anthropic.claude-sonnet-4",
+    "us.anthropic.claude-opus-4",
+    "us.anthropic.claude-sonnet-4",
+])
+def test_dated_major_version_never_matches_a_minor_version_key(prefix):
+    # Regression: the dateless loop took the first key starting with the
+    # date-stripped base, so dated Opus 4 got Opus 4.8's price and dated
+    # Sonnet 4 got Sonnet 4.6's. Built by concatenation for lint:model-id.
+    assert bp._static_fallback(prefix + "-20250514-v1:0") is None
+
+
+@pytest.mark.parametrize("model_id,inp,out", [
+    ("anthropic.claude-sonnet-5-5", 0.002, 0.010),
+    ("global.anthropic.claude-sonnet-5-5", 0.002, 0.010),
+    ("us.anthropic.claude-sonnet-5-5", 0.0022, 0.011),
+    ("anthropic.claude-haiku-5-5", 0.0001, 0.0005),
+    ("global.anthropic.claude-haiku-5-5", 0.0001, 0.0005),
+    ("us.anthropic.claude-haiku-5-5", 0.00011, 0.00055),
+])
+def test_claude_5_5_rates_resolve_from_the_static_table(model_id, inp, out, monkeypatch):
+    import boto3
+
+    def no_live_pricing(*args, **kwargs):
+        raise AssertionError("Claude 5.5 pricing must come from the static table")
+
+    monkeypatch.setattr(boto3, "client", no_live_pricing)
+    assert model_id in bp.STATIC_FALLBACK
+    result = bp.lookup("us-east-2", model_id)
+    assert result["available"] is True
+    assert result["input_per_1k_usd"] == inp
+    assert result["output_per_1k_usd"] == out
+    assert f"matched {model_id};" in result["note"]
+
+
+@pytest.mark.parametrize("model_id,lc_rate", [
+    ("anthropic.claude-haiku-5-5", "$0.50 input / $2.50 output per 1M"),
+    ("global.anthropic.claude-haiku-5-5", "$0.50 input / $2.50 output per 1M"),
+    ("us.anthropic.claude-haiku-5-5", "$0.55 input / $2.75 output per 1M"),
+])
+def test_haiku_5_5_note_names_the_long_context_tier(model_id, lc_rate):
+    note = bp.lookup("us-east-2", model_id)["note"]
+    assert "<=100K" in note
+    assert ">100K" in note
+    assert "whole request" in note
+    assert lc_rate in note
+
+
+def test_lookup_note_keeps_the_matched_key():
+    # Regression: lookup() overwrote "static fallback (matched {key})" with fixed
+    # "verified" text, so a partial match read as an exact verified price.
+    dated_id = "us.anthropic.claude-sonnet-4-6" + "-20250514-v1:0"
+    note = bp.lookup("us-east-1", dated_id)["note"]
+    assert "static pricing table" in note
+    assert "matched us.anthropic.claude-sonnet-4-6;" in note
+
+
+def _cache_anthropic_model_ids():
+    from pathlib import Path
+    cache = (Path(__file__).resolve().parents[2]
+             / "shared" / "ai" / "bedrock-pricing-cache.md")
+    ids = []
+    for line in cache.read_text().splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) >= 3 and cells[2] == "Anthropic" and cells[1] not in ("", "—"):
+            ids.append(cells[1])
+    return sorted(set(ids))
+
+
+def test_cache_anthropic_table_is_found():
+    ids = _cache_anthropic_model_ids()
+    assert "us.anthropic.claude-sonnet-5-5" in ids
+    assert "global.anthropic.claude-haiku-5-5" in ids
+
+
+@pytest.mark.parametrize("model_id", [
+    m for m in _cache_anthropic_model_ids() if "claude-opus-5" not in m
+])
+def test_every_cache_anthropic_model_resolves_to_its_own_entry(model_id):
+    # Each model the cache lists either prices from a key for the same model
+    # (same prefix and family, differing only by date/version suffix) or is
+    # unpriced by the table; it never takes another model's entry.
+    out = bp._static_fallback(model_id)
+    if out is not None:
+        assert _priced_by_same_model(model_id, out), (model_id, out["note"])
+        if "matched " in out["note"]:
+            key = out["note"].split("matched ", 1)[1].rstrip(")")
+            assert _family(key) == _family(model_id), (model_id, key)
+
+
+@pytest.mark.parametrize("model_id", [
+    "us.anthropic.claude-sonnet-5-5", "global.anthropic.claude-sonnet-5-5",
+    "us.anthropic.claude-haiku-5-5", "global.anthropic.claude-haiku-5-5",
+])
+def test_cache_listed_claude_5_5_ids_are_priced(model_id):
+    assert model_id in _cache_anthropic_model_ids()
+    assert model_id in bp.STATIC_FALLBACK
