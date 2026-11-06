@@ -51,9 +51,21 @@ If fingerprint ≠ `index.inventory_fingerprint`, **STOP**:
 
 > Inventory changed since baseline. Re-run Discover before workshop reprice.
 
-### 2. Stale Generate guard
+### 2. Stale Generate guard — enforced at entry, not repeated here
 
-If generate completed, require re-entry confirm and reset generate to `pending`.
+`workshop.md` § Step: Guard re-entry after Generate is the single authoritative
+point for a stale Generate/decide state (Generate completed or in progress, or
+`current_phase` `generate`/`complete` with `run_mode` set). It runs before this
+file is reached, on every path into the workshop, and has already reset
+`phases.generate` to `"pending"` and normalized `current_phase`/`run_mode` when
+it needed to. Do not re-check `phases.generate` here.
+
+That guard leaves everything Generate wrote (`terraform/`, `ai-migration/`,
+`generation-*.json`, `MIGRATION_GUIDE.md`, …) on disk untouched; a previous
+execution pack beside a fresh decision is the expected state.
+
+If this file is reached without passing through that `workshop.md` step, treat
+that as an interpreter error and return to it.
 
 ### 3. Patch preferences
 
