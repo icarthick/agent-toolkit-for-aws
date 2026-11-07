@@ -59,8 +59,15 @@ artifact with a `halt` object naming the missing file, then fail the gate) — t
 
 ## Step 0.5: Regional availability validation
 
-Read `preferences.json` → `design_constraints.target_region` (default `us-east-1`). Call
-`aws___get_regional_availability` (AWS MCP Server) for each candidate Bedrock model, and — if
+Resolve the target Region from `preferences.json`, first match wins:
+
+1. `global.target_region.value` (full run; `clarify-assemble.md` requires it).
+2. `design_constraints.target_region.value` (AI-only run, `metadata.migration_type == "ai-only"`).
+3. Otherwise `us-east-1`.
+
+`target_region` is an object; its `value` is the Region code. Pass that string, never the
+object, as the Region. Call `aws___get_regional_availability` (AWS MCP Server) for each
+candidate Bedrock model, and — if
 `agentic_profile.is_agentic` — for `bedrock-agentcore`. Unavailable services go to
 `regional_warnings[]` (do NOT block; flag and proceed with an alternative-region note). If the
 call fails, use the static table in
