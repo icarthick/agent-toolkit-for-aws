@@ -120,8 +120,8 @@ See `vendored/ai/ai-model-lifecycle.md` for lifecycle details. **Do not recommen
 | GPT-5.6 Sol                      | openai.gpt-5.6-sol                       | OpenAI    | 4.40       | 22.00       | 272K    | frontier  | active (mantle in-region + runtime CRIS; 1M tier 8.80/33.00) |
 | GPT-5.6 Terra                    | openai.gpt-5.6-terra                     | OpenAI    | 2.20       | 13.20       | 272K    | flagship  | active (mantle in-region + runtime CRIS; 1M tier 4.40/19.80) |
 | GPT-5.6 Luna                     | openai.gpt-5.6-luna                      | OpenAI    | 0.22       | 1.32        | 272K    | fast      | active (mantle in-region + runtime CRIS; 1M tier 0.44/1.98)  |
-| GPT-5.5                          | openai.gpt-5.5                           | OpenAI    | 5.50       | 33.00       | 272K    | frontier  | active (mantle only; no 1M tier)                             |
-| GPT-5.4                          | openai.gpt-5.4                           | OpenAI    | 2.75       | 16.50       | 272K    | flagship  | active (mantle only; no 1M tier)                             |
+| GPT-5.5                          | openai.gpt-5.5                           | OpenAI    | 5.50       | 33.00       | 272K    | frontier  | active (mantle in-region + runtime CRIS `us.`/`global.`, CRIS unpriced; 1M tier 11.00/49.50; window 1.05M) |
+| GPT-5.4                          | openai.gpt-5.4                           | OpenAI    | 2.75       | 16.50       | 272K    | flagship  | active (mantle in-region + runtime CRIS `us.`/`global.`, CRIS unpriced; 1M tier 5.50/24.75; window 1.05M) |
 | Gemma 4 31B                      | google.gemma-4-31b                       | Google    | 0.14       | 0.40        | 256K    | mid       | active (Mantle only)                                         |
 | Gemma 4 26B-A4B                  | google.gemma-4-26b-a4b                   | Google    | 0.13       | 0.40        | 256K    | efficient | active (Mantle only)                                         |
 | Gemma 4 E2B                      | google.gemma-4-e2b                       | Google    | 0.04       | 0.08        | 128K    | budget    | active (Mantle only)                                         |
@@ -340,16 +340,27 @@ Regions (mantle): us-east-1 / us-east-2 for all five; us-west-2 additionally car
 | GPT-5.5       | 5.50       | 33.00       | —                | 0.55            |
 | GPT-5.4       | 2.75       | 16.50       | —                | 0.275           |
 
-#### Long context (1M) — GPT-5.6 only, 2.0x input / 1.5x output
+#### Long context (1M) — 2.0x input / 1.5x output, in-region
 
 | Model         | Input $/1M | Output $/1M |
 | ------------- | ---------- | ----------- |
 | GPT-5.6 Sol   | 8.80       | 33.00       |
 | GPT-5.6 Terra | 4.40       | 19.80       |
 | GPT-5.6 Luna  | 0.44       | 1.98        |
+| GPT-5.5       | 11.00      | 49.50       |
+| GPT-5.4       | 5.50       | 24.75       |
 
-A workload above 272K context must be priced at the long-context tier. GPT-5.5 and GPT-5.4 have no such tier, so
-their usable window is 272K. Global CRIS is published at OpenAI's standard list price (cost parity, GPT-5.6 only —
+Long-context cache read: GPT-5.5 1.10, GPT-5.4 0.55 (no cache-write rate published for either).
+
+GPT-5.5 and GPT-5.4 long-context rates, their 1,050,000-token window (shared input and output; 128,000 max output)
+and their runtime CRIS ids (`us.openai.gpt-5.5` / `global.openai.gpt-5.5`, same for 5.4) are from the
+[GPT-5.5](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-openai-gpt-55.html) and
+[GPT-5.4](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-openai-gpt-54.html) model cards, read
+2026-11-07. The cards publish In-Region rates only, so these rates price the mantle path; the runtime CRIS ids have
+**no published rate** (cards and Price List, 2026-11-07) and an estimate on them must be reported unpriced.
+
+A workload above 272K context must be priced at the long-context tier; the long-context rate applies to the whole
+request, not only the tokens above 272K. Global CRIS is published at OpenAI's standard list price (cost parity, GPT-5.6 only —
 see `openai-on-bedrock.md`). GovCloud GPT-5.4 is 3.30 / 19.80.
 
 > **One source conflict.** These models are absent
@@ -360,7 +371,8 @@ see `openai-on-bedrock.md`). GovCloud GPT-5.4 is 3.30 / 19.80.
 
 **Prompt caching (GPT-5.6 only):** cached input read at a 90% discount, cache write at 1.25x uncached input, minimum
 1,024-token prefix, up to 4 breakpoints, ≥30-minute retention. Cached input is exempt from the input-TPM quota.
-GPT-5.5 and GPT-5.4 do not list prompt caching support.
+GPT-5.5 and GPT-5.4 list only implicit prompt caching (Responses API on `bedrock-runtime`, automatic, no request
+parameters; explicit caching not supported) plus the cache-read rates above; the GPT-5.6 rules here do not apply to them.
 
 #### Open-weight gpt-oss
 

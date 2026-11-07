@@ -75,6 +75,23 @@ def is_gpt6_cris_model(model_id: str) -> bool:
     return base_id.startswith("openai.gpt-6")
 
 
+# GPT-5.5 / GPT-5.4 CRIS ids: their model cards (2026-11-07) grant InvokeModel on
+# the inference profile and on the default project, the same as GPT-6.
+_DEFAULT_PROJECT_GPT5_BASE_IDS = frozenset({"openai.gpt-5.5", "openai.gpt-5.4"})
+
+
+def needs_default_project(model_id: str) -> bool:
+    """True for a CRIS id whose model card also requires `bedrock:InvokeModel` on
+    the default project ARN: any GPT-6 CRIS id, and the GPT-5.5 / GPT-5.4 CRIS ids
+    (`us.`/`global.` prefixed). Bare ids (mantle) and GPT-5.6 CRIS ids do not."""
+    if is_gpt6_cris_model(model_id):
+        return True
+    if not is_inference_profile(model_id):
+        return False
+    base_id = _GEO_PREFIX.sub("", model_id.rsplit("/", 1)[-1]).lower()
+    return base_id in _DEFAULT_PROJECT_GPT5_BASE_IDS
+
+
 def generate_policy(model_ids: list[str], region: str, account_id: str) -> dict:
     """Build a scoped IAM policy covering exactly the given model IDs.
 
@@ -100,11 +117,11 @@ def generate_policy(model_ids: list[str], region: str, account_id: str) -> dict:
             resources.append(inference_profile_arn(mid, region, account_id))
             base_id = _GEO_PREFIX.sub("", mid.rsplit("/", 1)[-1])
             resources.append(foundation_model_arn(base_id, region))
-            # A GPT-6 CRIS id's model card "Call the model" section grants
-            # InvokeModel on the inference-profile ARN AND the default project
-            # ARN — both are required, neither replaces the other. GPT-5.6 CRIS
-            # ids and all other runtime targets keep the 2-ARN shape above.
-            if is_gpt6_cris_model(mid):
+            # GPT-6 and GPT-5.5 / GPT-5.4 CRIS ids' model cards grant InvokeModel
+            # on the inference-profile ARN AND the default project ARN — both are
+            # required, neither replaces the other. GPT-5.6 CRIS ids and all other
+            # runtime targets keep the 2-ARN shape above.
+            if needs_default_project(mid):
                 resources.append(default_project_arn(region, account_id))
         else:
             resources.append(foundation_model_arn(mid, region))

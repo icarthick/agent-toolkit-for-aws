@@ -131,8 +131,8 @@ served via `bedrock-runtime` CRIS, `us.`/`global.` prefixed, `model_change: fals
 specifically** must move off mantle for Guardrails / Knowledge Bases / logging / an unsupported
 region, or when the GPT-6/5.6 CRIS path itself cannot serve the need) · `gpt-oss` (OpenAI-lineage
 model on the Bedrock-native runtime) · `direct` (framework-agnostic Bedrock SDK swap). **GPT-5.5
-and GPT-5.4** are NEVER paired with a `converse`/`bedrock-runtime` path — those two models only
-are mantle-only, no CRIS. GPT-5.6 and GPT-6 models MAY use `runtime_openai_cris` on
+and GPT-5.4** are NEVER paired with a `converse`/`bedrock-runtime` path — those two models only:
+their `us.`/`global.` CRIS ids have no published rate, and selecting them is pending a separate decision. GPT-5.6 and GPT-6 models MAY use `runtime_openai_cris` on
 `bedrock-runtime` — this is not a violation. Note: `runtime_openai_cris` for GPT-6 Astra is valid
 only via Responses/Chat Completions/Converse — Astra does not support `Invoke`, so a design that
 needs Guardrails or Application Inference Profiles (Converse-only features that also require
@@ -202,7 +202,8 @@ rubric file (`ai.md`, `ai-azure-openai-to-bedrock.md`, or a `vendored/ai/*` ref)
 - [ ] Bare proprietary GPT ids use Mantle; runtime Astra uses a supported `us.` / `global.`
       CRIS id and its caller-region gate. The recorded API and `model_change` match the design.
 - [ ] No `bedrock_models[]` entry pairs **GPT-5.5 or GPT-5.4** with a `converse`/`bedrock-runtime`
-      migration path (those two models only — mantle-only, no CRIS). GPT-5.6 and GPT-6 models MAY
+      migration path (those two models only — their `us.`/`global.` CRIS ids are unpriced and
+      selecting them is pending a separate decision). GPT-5.6 and GPT-6 models MAY
       use `migration_path: "runtime_openai_cris"` on `bedrock-runtime` — this is NOT a violation.
 - [ ] If `ai_source` is `azure_openai` or `openai`: every source model that is available on
       Bedrock and carried by the target region maps to ITSELF with `model_change: false` — not

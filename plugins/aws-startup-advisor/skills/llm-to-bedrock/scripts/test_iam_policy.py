@@ -12,6 +12,7 @@ from iam_policy import (
     foundation_model_arn,
     generate_policy,
     is_gpt6_cris_model,
+    needs_default_project,
     is_mantle_model,
     mantle_project_arn,
     inference_profile_arn,
@@ -250,6 +251,31 @@ class TestGpt6CrisProjectArn:
         pol = generate_policy(["us.anthropic.claude-sonnet-5"], REGION, ACCOUNT)
         resources = pol["Statement"][0]["Resource"]
         assert default_project_arn(REGION, ACCOUNT) not in resources
+
+    @pytest.mark.parametrize(
+        "model_id",
+        [
+            "us.openai.gpt-5.5",
+            "global.openai.gpt-5.5",
+            "us.openai.gpt-5.4",
+            "global.openai.gpt-5.4",
+        ],
+    )
+    def test_generate_policy_grants_project_default_for_gpt55_gpt54_cris(self, model_id):
+        # The GPT-5.5 / GPT-5.4 model cards (2026-11-07) require InvokeModel on the
+        # default project as well as on the inference profile, as GPT-6 does.
+        assert needs_default_project(model_id)
+        pol = generate_policy([model_id], REGION, ACCOUNT)
+        resources = pol["Statement"][0]["Resource"]
+        assert default_project_arn(REGION, ACCOUNT) in resources
+        assert any("inference-profile/" in r for r in resources)
+
+    def test_needs_default_project_excludes_bare_and_gpt56_cris(self):
+        assert not needs_default_project("openai.gpt-5.5")  # bare — mantle
+        assert not needs_default_project("openai.gpt-5.4")
+        assert not needs_default_project("us.openai.gpt-5.6-sol")
+        assert not needs_default_project("us.openai.gpt-5.45")
+        assert not needs_default_project("us.anthropic.claude-sonnet-5")
 
     def test_bare_gpt6_mantle_id_still_yields_no_invoke_model_statement(self):
         pol = generate_policy(["openai.gpt-6-sol"], REGION, ACCOUNT)
