@@ -1,6 +1,6 @@
 # Amazon Bedrock Pricing Cache
 
-**Last updated:** 2026-10-26 (fact re-verify 2026-10-26: Stable Image Core N. Virginia source note, Titan Text Embeddings v2 lifecycle check, GPT-6 Luna card re-verify incl. the 272K short/long boundary, Sonnet 5.5 Geo note; added Claude Sonnet 5.5 / Haiku 5.5 Global+Geo rows and DeepSeek V3.2 quick-ref from Bedrock pricing US East (Ohio) + model cards; Haiku 5.5 ≤100K / >100K long-context tiers + cache; lifecycle Status refresh — Claude Sonnet 4 → past EOL; Opus 4.1 → excluded; Llama 4 Maverick/Scout, Llama 3.3 70B, DeepSeek-R1/V3.1, Claude Sonnet 4.5 → legacy; Marengo 3.0 replacement scoped to non-Seoul; other rates unchanged from the 2026-10-05 pricing re-verify)
+**Last updated:** 2026-11-07 (full-cache re-verify 2026-11-07 against the AWS Price List API (`AmazonBedrockFoundationModels` and `AmazonBedrock`, filtered by `regionCode`), `ListFoundationModels` / `GetFoundationModel` in us-east-1/us-east-2/us-west-2, the Bedrock model cards and the model lifecycle pages: Stable Image Ultra $0.08 → $0.14 and Stable Diffusion 3.5 Large $0.065 → $0.08 per image; Claude Opus 4.8 context 200K → 1M; DeepSeek-V3.1 context — → 128K and its runtime Regions now include US East (Ohio) and US West (Oregon); DeepSeek v3.2 Sydney $0.6386/$1.9055 → $0.64/$1.91; Nova Micro/Lite/Pro cache-read cells N/A → listed rates; all other confirmed rates unchanged. Rows not re-confirmed this run keep their previous values; see the refresh pull request for the list and for source conflicts. Prior re-verify: 2026-10-26)
 **Region:** us-east-1
 **Currency:** USD
 **Accuracy:** ±15-25% for AI/Bedrock models and services (sourced from public pricing pages)
@@ -17,7 +17,7 @@
 rates are retained for existing deployments only; do not recommend it as a new target
 or automatic fallback. The separately documented Opus 4.6 Batch exception remains.
 
-**Opus 5.5 rates verified: 2026-09-24.** Source: AWS Price List API, service
+**Opus 5.5 rates verified: 2026-11-07** (first verified 2026-09-24; SKUs unchanged). Source: AWS Price List API, service
 `AmazonBedrockFoundationModels`, filter `servicename = Claude Opus 5.5 (Amazon Bedrock Edition)`
 and the source `regionCode`; see [Bedrock pricing](https://aws.amazon.com/bedrock/pricing/).
 The Opus 5.5 rows below are Standard on-demand, per 1M tokens: Global **$4/$20**;
@@ -59,7 +59,7 @@ full-cache date at the top of this file.
 >
 > Opus 5.5 rows already specify Global, Geo, Mantle, London or GovCloud pricing; do not apply another 1.10 multiplier.
 
-**Sonnet 5.5 / Haiku 5.5 (`anthropic.claude-sonnet-5-5` / `anthropic.claude-haiku-5-5` on Bedrock), rates verified 2026-10-25.** Source: [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/), Anthropic models table, Global and Geo/In-region Cross-region Inference, US East (Ohio); model cards confirm Active lifecycle and 1M context. Per 1M tokens — **Sonnet 5.5** Global: input $2.00, output $10.00, 5m cache write $2.50, 1h cache write $4.00, cache read $0.10; Geo (US): $2.20 / $11.00, 5m $2.75, 1h $4.40, cache read $0.11. **Haiku 5.5** uses **tiered long-context pricing** at a **100,000-token prompt boundary** ([model card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html#model-card-anthropic-claude-haiku-5-5-pricing); Bedrock pricing "Claude Haiku 5.5 - Long Context" row). Prompt length counts all input tokens including cache reads and cache writes. When the prompt exceeds 100,000 tokens, the higher Long Context rates apply to the **whole qualifying request** (input, output, and cache read/write) — not only the tokens past the boundary. Per 1M tokens — **≤100K** Global: input $0.10, output $0.50, 5m cache write $0.125, 1h cache write $0.20, cache read $0.01; US Geo: $0.11 / $0.55, 5m $0.1375, 1h $0.22, cache read $0.011. **>100K** Global: $0.50 / $2.50, 5m $0.625, 1h $1.00, cache read $0.05; US Geo: $0.55 / $2.75, 5m $0.6875, 1h $1.10, cache read $0.055. When per-request prompt size is unknown, do **not** silently quote the ≤100K row — follow the existing unavailable / dual-scenario handling in `estimate-ai.md` (flag `pricing_tier: "approximate — request-size distribution unknown"` and present both ≤100K and >100K rows, or set `pricing_source: "unavailable"`). Batch is N/A for both Sonnet 5.5 and Haiku 5.5. **Cache-read note:** Sonnet 5.5 cache read is reduced 50% from the prior rate starting October 7, 2026 (prior Global $0.20). Sonnet 5 keeps its own $0.20 Global cache-read row. Do not silently reuse Sonnet 5 or Haiku 4.5 rates for 5.5 estimates. Read the [Sonnet 5.5 migration guide](https://platform.claude.com/docs/en/models/sonnet-5-5/migration-guide) before recommending Sonnet 5.5 request/response handling.
+**Sonnet 5.5 / Haiku 5.5 (`anthropic.claude-sonnet-5-5` / `anthropic.claude-haiku-5-5` on Bedrock), rates verified 2026-10-25; re-verified 2026-11-07 against the AWS Price List, us-east-1.** Source: [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/), Anthropic models table, Global and Geo/In-region Cross-region Inference, US East (Ohio); model cards confirm Active lifecycle and 1M context. Per 1M tokens — **Sonnet 5.5** Global: input $2.00, output $10.00, 5m cache write $2.50, 1h cache write $4.00, cache read $0.10; Geo (US): $2.20 / $11.00, 5m $2.75, 1h $4.40, cache read $0.11. **Haiku 5.5** uses **tiered long-context pricing** at a **100,000-token prompt boundary** ([model card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html#model-card-anthropic-claude-haiku-5-5-pricing); Bedrock pricing "Claude Haiku 5.5 - Long Context" row). Prompt length counts all input tokens including cache reads and cache writes. When the prompt exceeds 100,000 tokens, the higher Long Context rates apply to the **whole qualifying request** (input, output, and cache read/write) — not only the tokens past the boundary. Per 1M tokens — **≤100K** Global: input $0.10, output $0.50, 5m cache write $0.125, 1h cache write $0.20, cache read $0.01; US Geo: $0.11 / $0.55, 5m $0.1375, 1h $0.22, cache read $0.011. **>100K** Global: $0.50 / $2.50, 5m $0.625, 1h $1.00, cache read $0.05; US Geo: $0.55 / $2.75, 5m $0.6875, 1h $1.10, cache read $0.055. When per-request prompt size is unknown, do **not** silently quote the ≤100K row — follow the existing unavailable / dual-scenario handling in `estimate-ai.md` (flag `pricing_tier: "approximate — request-size distribution unknown"` and present both ≤100K and >100K rows, or set `pricing_source: "unavailable"`). Batch is N/A for both Sonnet 5.5 and Haiku 5.5. **Cache-read note:** Sonnet 5.5 cache read is reduced 50% from the prior rate starting October 7, 2026 (prior Global $0.20). Sonnet 5 keeps its own $0.20 Global cache-read row. Do not silently reuse Sonnet 5 or Haiku 4.5 rates for 5.5 estimates. Read the [Sonnet 5.5 migration guide](https://platform.claude.com/docs/en/models/sonnet-5-5/migration-guide) before recommending Sonnet 5.5 request/response handling.
 
 ### Multi-provider quick reference (per 1M tokens)
 
@@ -72,16 +72,16 @@ See `vendored/ai/ai-model-lifecycle.md` for lifecycle details. **Do not recommen
 | Claude Sonnet 5                  | anthropic.claude-sonnet-5                | Anthropic | 2.00       | 10.00       | 1M      | flagship  | active ($2/$10 made the standard price Sep 1, 2026)          |
 | Claude Sonnet 5.5 (Global)       | global.anthropic.claude-sonnet-5-5       | Anthropic | 2.00       | 10.00       | 1M      | flagship  | active (Global CRIS; ACTIVE per model card; source US East (Ohio) pricing table) |
 | Claude Sonnet 5.5 (US Geo)       | us.anthropic.claude-sonnet-5-5           | Anthropic | 2.20       | 11.00       | 1M      | flagship  | active (US Geo; source US East (Ohio) pricing table)         |
-| Claude Opus 5.5 (Global)          | global.anthropic.claude-opus-5-5         | Anthropic | 4.00       | 20.00       | 1M      | premium   | active (Global CRIS; no Batch; verified 2026-09-24)                      |
-| Claude Opus 5.5 (US Geo)          | us.anthropic.claude-opus-5-5             | Anthropic | 4.40       | 22.00       | 1M      | premium   | active (commercial US Geo; no Batch; verified 2026-09-24)                |
-| Claude Opus 5.5 (EU Geo)          | eu.anthropic.claude-opus-5-5             | Anthropic | 4.40       | 22.00       | 1M      | premium   | active (EU Geo; no Batch; verified 2026-09-24)                           |
-| Claude Opus 5.5 (AU Geo)          | au.anthropic.claude-opus-5-5             | Anthropic | 4.40       | 22.00       | 1M      | premium   | active (AU Geo; no Batch; verified 2026-09-24)                           |
-| Claude Opus 5.5 (JP Geo)          | jp.anthropic.claude-opus-5-5             | Anthropic | 4.40       | 22.00       | 1M      | premium   | active (JP Geo; no Batch; verified 2026-09-24)                           |
-| Claude Opus 5.5 (Mantle)          | anthropic.claude-opus-5-5                | Anthropic | 4.40       | 22.00       | 1M      | premium   | active (commercial Mantle Messages; no Batch; verified 2026-09-24)       |
+| Claude Opus 5.5 (Global)          | global.anthropic.claude-opus-5-5         | Anthropic | 4.00       | 20.00       | 1M      | premium   | active (Global CRIS; no Batch; verified 2026-11-07)                      |
+| Claude Opus 5.5 (US Geo)          | us.anthropic.claude-opus-5-5             | Anthropic | 4.40       | 22.00       | 1M      | premium   | active (commercial US Geo; no Batch; verified 2026-11-07)                |
+| Claude Opus 5.5 (EU Geo)          | eu.anthropic.claude-opus-5-5             | Anthropic | 4.40       | 22.00       | 1M      | premium   | active (EU Geo; no Batch; verified 2026-11-07)                           |
+| Claude Opus 5.5 (AU Geo)          | au.anthropic.claude-opus-5-5             | Anthropic | 4.40       | 22.00       | 1M      | premium   | active (AU Geo; no Batch; verified 2026-11-07)                           |
+| Claude Opus 5.5 (JP Geo)          | jp.anthropic.claude-opus-5-5             | Anthropic | 4.40       | 22.00       | 1M      | premium   | active (JP Geo; no Batch; verified 2026-11-07)                           |
+| Claude Opus 5.5 (Mantle)          | anthropic.claude-opus-5-5                | Anthropic | 4.40       | 22.00       | 1M      | premium   | active (commercial Mantle Messages; no Batch; verified 2026-11-07)       |
 | Claude Opus 5.5 (London in-region) | anthropic.claude-opus-5-5 | Anthropic | 4.40 | 22.00 | 1M | premium | active (eu-west-2 runtime only; no Batch; verified 2026-10-03) |
-| Claude Opus 5.5 (GovCloud Geo)    | us.anthropic.claude-opus-5-5             | Anthropic | 4.80       | 24.00       | 1M      | premium   | active (us-gov-east-1/us-gov-west-1 only; no Batch; verified 2026-09-24) |
-| Claude Opus 5.5 (GovCloud Mantle) | anthropic.claude-opus-5-5                | Anthropic | 4.80       | 24.00       | 1M      | premium   | active (us-gov-west-1 Mantle only; no Batch; verified 2026-09-24)        |
-| Claude Opus 4.8                  | anthropic.claude-opus-4-8                | Anthropic | 5.00       | 25.00       | 200K    | premium   | active                                                       |
+| Claude Opus 5.5 (GovCloud Geo)    | us.anthropic.claude-opus-5-5             | Anthropic | 4.80       | 24.00       | 1M      | premium   | active (us-gov-east-1/us-gov-west-1 only; no Batch; verified 2026-11-07) |
+| Claude Opus 5.5 (GovCloud Mantle) | anthropic.claude-opus-5-5                | Anthropic | 4.80       | 24.00       | 1M      | premium   | active (us-gov-west-1 Mantle only; no Batch; verified 2026-11-07)        |
+| Claude Opus 4.8                  | anthropic.claude-opus-4-8                | Anthropic | 5.00       | 25.00       | 1M      | premium   | active                                                       |
 | Claude Sonnet 4.6                | anthropic.claude-sonnet-4-6              | Anthropic | 3.00       | 15.00       | 200K    | flagship  | active                                                       |
 | Claude Sonnet 4.6 — Long Context | anthropic.claude-sonnet-4-6              | Anthropic | 3.00       | 15.00       | 200K+   | flagship  | active                                                       |
 | Claude Opus 4.6                  | anthropic.claude-opus-4-6-v1             | Anthropic | 5.00       | 25.00       | 200K    | premium   | active                                                       |
@@ -109,7 +109,7 @@ See `vendored/ai/ai-model-lifecycle.md` for lifecycle details. **Do not recommen
 | Nova Premier                     | amazon.nova-premier-v1:0                 | Amazon    | 2.50       | 12.50       | 1M      | reasoning | EOL (2026-09-14)                                             |
 | Mistral Large 3                  | mistral.mistral-large-3-675b-instruct    | Mistral   | 0.50       | 1.50        | 256K    | flagship  | active                                                       |
 | DeepSeek-R1                      | deepseek.r1-v1:0                         | DeepSeek  | 1.35       | 5.40        | 128K    | reasoning | legacy (EOL Mar 30, 2027)                                    |
-| DeepSeek-V3.1                    | deepseek.v3-v1:0                         | DeepSeek  | 0.58       | 1.68        | —       | mid       | legacy (EOL Mar 30, 2027; Sydney only)                       |
+| DeepSeek-V3.1                    | deepseek.v3-v1:0                         | DeepSeek  | 0.58       | 1.68        | 128K    | mid       | legacy (EOL Mar 30, 2027; US East (Ohio), US West (Oregon), Sydney and other listed Regions) |
 | DeepSeek V3.2                    | deepseek.v3.2                            | DeepSeek  | 0.62       | 1.85        | 164K    | mid       | active (US East N. Virginia/Ohio + Oregon; prefer over V3.1 for US) |
 | gpt-oss-20b                      | openai.gpt-oss-20b-1:0                   | OpenAI    | 0.07       | 0.30        | 128K    | budget    | active                                                       |
 | gpt-oss-120b                     | openai.gpt-oss-120b-1:0                  | OpenAI    | 0.15       | 0.60        | 128K    | efficient | active                                                       |
@@ -165,8 +165,8 @@ Active image generation models on Bedrock. Priced **per image** (not per token).
 
 | Model                      | Model ID                          | Price/image | Resolution | Tier     | Status |
 | -------------------------- | --------------------------------- | ----------- | ---------- | -------- | ------ |
-| Stable Image Ultra         | stability.stable-image-ultra-v1:1 | $0.08       | up to 4MP  | premium  | active |
-| Stable Diffusion 3.5 Large | stability.sd3-5-large-v1:0        | $0.065      | up to 1MP  | flagship | active |
+| Stable Image Ultra         | stability.stable-image-ultra-v1:1 | $0.14       | up to 4MP  | premium  | active |
+| Stable Diffusion 3.5 Large | stability.sd3-5-large-v1:0        | $0.08       | up to 1MP  | flagship | active |
 | Stable Image Core          | stability.stable-image-core-v1:1  | $0.04       | up to 1MP  | fast     | active |
 
 **Stable Image Core source:** $0.04 per generated image, on-demand, from the AWS Stability AI price table on [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/), which lists Stable Image Core for **US East (N. Virginia)** (verified 2026-10-25); the [Stable Image Core 1.0 model card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-stability-ai-stable-image-core-1-0.html) reads Active, Model EOL date N/A (verified 2026-10-26). Gemini's image-generation price for comparison: Gemini 3.1 Flash Image (Nano Banana 2) output is $30 per 1M image tokens — $0.0336 per 1K (1024×1024) image standard, $15 per 1M ($0.0168 per 1K image) batch — per [Gemini API pricing](https://ai.google.dev/gemini-api/docs/pricing) (verified 2026-10-26); token-to-image equivalence with a 1MP Stable Image Core render is _unverified_.
@@ -273,7 +273,7 @@ Per [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) (DeepSeek)
 
 #### US East (Ohio) — Standard tier
 
-> **Note:** DeepSeek-V3.1 is no longer listed for US East regions on the Bedrock pricing page as of May 2026. Use DeepSeek-V3.2 for US East deployments. DeepSeek-V3.1 remains available in Asia Pacific (Sydney).
+> **Note:** DeepSeek-V3.1 is Legacy (EOL Mar 30, 2027). The AWS Price List carries `bedrock-runtime` V3.1 rates of $0.58 / $1.68 per 1M in US East (Ohio) and US West (Oregon), and a `bedrock-mantle` rate in US East (N. Virginia) (re-verified 2026-11-07). Prefer DeepSeek-V3.2 for new US deployments.
 
 | Model       | Input $/1M | Output $/1M |
 | ----------- | ---------- | ----------- |
@@ -288,7 +288,7 @@ Per [Amazon Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) (DeepSeek)
 #### Other regions (examples on same page)
 
 - **Asia Pacific (Mumbai)**, **São Paulo**, **Jakarta**, **Tokyo**, **Stockholm**: DeepSeek v3.2 **$0.74 / $2.22** per 1M.
-- **Asia Pacific (Sydney)**: DeepSeek v3.1 **$0.5974 / $1.7304**; v3.2 **$0.6386 / $1.9055** (and **Priority** / **Flex** tiers listed separately on the page).
+- **Asia Pacific (Sydney)**: DeepSeek v3.1 **$0.5974 / $1.7304**; v3.2 **$0.64 / $1.91** (and **Priority** / **Flex** tiers listed separately on the page).
 
 ### OpenAI on Bedrock (GPT-6, GPT-5.6, and gpt-oss)
 
@@ -352,9 +352,9 @@ A workload above 272K context must be priced at the long-context tier. GPT-5.5 a
 their usable window is 272K. Global CRIS is published at OpenAI's standard list price (cost parity, GPT-5.6 only —
 see `openai-on-bedrock.md`). GovCloud GPT-5.4 is 3.30 / 19.80.
 
-> **One source conflict.** These models are absent
-> from the AWS Price List API entirely: querying `AmazonBedrock` returns only `gpt-oss` and GPT OSS Safeguard, and
-> filtering on `GPT-5` or a `gpt-5` usage type returns zero rows (price-list publication 2026-08-04). An empty
+> **Price List coverage.** The AWS Price List API carries no commercial-Region rows for these models. As of
+> 2026-11-07, `AmazonBedrock` carries only AWS GovCloud (US) `bedrock-mantle` rows for GPT-5.4 (us-gov-west-1 and
+> us-gov-east-1, 3.30 / 19.80, cache read 0.33) and GPT-5.6 Terra / Luna (us-gov-west-1). An empty
 > price-list result is **not** evidence the model is unavailable. (An earlier revision also
 > flagged the AWS News Blog's Luna 0.20 / 1.20 as conflicting; it is the Global CRIS rate, not an error.)
 
@@ -536,9 +536,9 @@ Per 1M tokens. **Nova 2 Omni** and **Nova 2 Pro** are **Preview**. Image column 
 | Model                | Input $/1M | Cache read $/1M | Output $/1M |
 | -------------------- | ---------- | --------------- | ----------- |
 | Amazon Nova 2.0 Lite | N/A        | N/A             | N/A         |
-| Amazon Nova Micro    | 0.035      | N/A             | 0.14        |
-| Amazon Nova Lite     | 0.06       | N/A             | 0.24        |
-| Amazon Nova Pro      | 0.80       | N/A             | 3.20        |
+| Amazon Nova Micro    | 0.035      | 0.00875         | 0.14        |
+| Amazon Nova Lite     | 0.06       | 0.015           | 0.24        |
+| Amazon Nova Pro      | 0.80       | 0.20            | 3.20        |
 
 #### Built-in tools — Web grounding (US East Ohio)
 
