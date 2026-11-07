@@ -153,9 +153,9 @@ Overall = weakest across models. `recommend_stay` REQUIRES a non-cost reason in
 `references/shared/openai-on-bedrock.md`: verified In-Region/Geo options use the
 data-residency-tier premium, while supported Global CRIS uses standard-rate parity.
 Report the actual option; do not downgrade solely for the modest verified premium.
-**GPT-5.6/GPT-6 only:** above 272K context, apply 2.0x input and 1.5x output rates only when
+**GPT-6/GPT-5.6/GPT-5.5/GPT-5.4:** above 272K context, apply 2.0x input and 1.5x output rates only when
 the selected model and inference option support that tier; the resulting gap may change
-the assessment. GPT-5.5/5.4 have no 1M tier. **Opus 5.5:** use the selected region/profile's
+the assessment. GPT-5.5/5.4 publish that tier for In-Region (mantle) only. **Opus 5.5:** use the selected region/profile's
 flat rates from `references/vendored/ai/bedrock-pricing-cache.md` throughout the full 1M context;
 do not apply the GPT multiplier. Verify other models' tiers individually.
 
@@ -219,8 +219,9 @@ CRIS per their model cards) — keep `chat.completions.create` unless a Response
 demonstrated constraint drives a reshape. **GPT-5.5 and GPT-5.4 are the exception**: Chat
 Completions support is unconfirmed on their model cards, so a Chat Completions source on either
 still needs a planned reshape to `responses.create`. **No Converse fallback for GPT-5.5/GPT-5.4 — GPT-5.6 and
-GPT-6 differ.** GPT-5.5 and GPT-5.4 are mantle-only, in-region only: needing Guardrails/Knowledge
-Bases/logging/an unsupported region forces a `converse` path with `model_change: true` to a
+GPT-6 differ.** The GPT-5.5 and GPT-5.4 cards now list `bedrock-runtime` CRIS ids (`us.`/`global.`),
+but AWS publishes no rate for them, and selecting that path for these two is pending a separate
+decision; until then, needing Guardrails/Knowledge Bases/logging/an unsupported region forces a `converse` path with `model_change: true` to a
 Bedrock-native model (or `gpt-oss`). GPT-5.6 Sol/Terra/Luna and all four GPT-6 models (Astra, Sol,
 Luna, 6.1 Sol) DO have a `bedrock-runtime` CRIS path (`us.`/`global.` prefixed IDs) — for these
 models the same need is satisfied by switching endpoint, not model: record

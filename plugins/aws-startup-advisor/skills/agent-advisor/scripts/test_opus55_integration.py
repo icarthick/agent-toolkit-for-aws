@@ -425,7 +425,9 @@ def test_assessment_eligibility_precedes_same_model_shortcuts(cloud):
 def test_assessment_same_model_pricing_keeps_opus_flat_and_gpt_tiers_scoped(cloud):
     text = (SKILLS / cloud / "references/phases/design/design-ai.md").read_text()
     assessment = text.split("**Stay-or-migrate", 1)[1].split("**Quota risk", 1)[0]
-    assert "**GPT-5.6/GPT-6 only:**" in assessment
+    # GPT-5.5 / GPT-5.4 cards list the same 272K long-context tier (2026-11-07).
+    assert "**GPT-6/GPT-5.6/GPT-5.5/GPT-5.4:**" in assessment
+    assert "no 1M tier" not in assessment
     assert "2.0x input" in assessment and "1.5x output" in assessment
     assert "**Opus 5.5:**" in assessment
     assert "flat" in assessment and "full 1M" in assessment

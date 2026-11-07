@@ -55,6 +55,7 @@
       ],
       "constraints": [
         "GPT-5.5 / GPT-5.4 have NO runtime path — a Converse target for them means a Bedrock-native model and a boto3 rewrite of the OpenAI integration",
+        "Note (model cards re-read 2026-11-07): the GPT-5.5 and GPT-5.4 cards now list bedrock-runtime CRIS ids (us.openai.gpt-5.5 / global.openai.gpt-5.5, same for 5.4; no published rate). This catalog does not yet offer them as runtime candidates; that recommendation change is pending a separate decision",
         "GPT-5.6 on runtime is CRIS-only (no in-region form); Geo CRIS stays within the geography, Global CRIS routes anywhere — pick by data-residency posture. Runtime does not support server-side tool use, structured outputs, or application inference profiles for these models; prompt caching is Responses-only",
         "Bedrock-native models generally require a Global or geography-scoped CRIS inference profile",
         "Availability must be probed in the target account and region"
@@ -117,7 +118,7 @@
         "reasoning",
         "tool_or_function_calling"
       ],
-      "capability_source": "AWS model card 2026-07-21 (launch 2026-06-01, Active): advanced coding/agentic tasks; tool calling via the Responses API's built-in tool use. Feature-level Mantle behavior not probed — verify before relying. Re-verified 2026-08-21: still mantle-only, in-region only; no CRIS, no runtime path, no long-context tier.",
+      "capability_source": "AWS model card 2026-07-21 (launch 2026-06-01, Active): advanced coding/agentic tasks; tool calling via the Responses API's built-in tool use. Feature-level Mantle behavior not probed — verify before relying. Re-verified 2026-08-21: still mantle-only, in-region only; no CRIS, no runtime path, no long-context tier. Note (model card re-read 2026-11-07): the card now lists a 1,050,000-token window (128,000 max output), a long-context price tier above 272K input, and bedrock-runtime CRIS ids us.openai.gpt-5.5 / global.openai.gpt-5.5 (no published rate). This entry's paths and context_window are unchanged; the recommendation change is pending a separate decision.",
       "paths": {
         "mantle_openai_responses": {
           "available": true,
@@ -221,7 +222,7 @@
         "reasoning",
         "streaming"
       ],
-      "capability_source": "internal reference smoke tests and its reasoning-API migration notebook (Responses path, 2026-06 probes) — the only entry with feature-level Mantle behavior probes (tools, structured output, sampling); limits not stated Re-verified 2026-08-21: still mantle-only, in-region only; no CRIS, no runtime path, no long-context tier.",
+      "capability_source": "internal reference smoke tests and its reasoning-API migration notebook (Responses path, 2026-06 probes) — the only entry with feature-level Mantle behavior probes (tools, structured output, sampling); limits not stated Re-verified 2026-08-21: still mantle-only, in-region only; no CRIS, no runtime path, no long-context tier. Note (model card re-read 2026-11-07): the card now lists a 1,050,000-token window (128,000 max output), a long-context price tier above 272K input, and bedrock-runtime CRIS ids us.openai.gpt-5.4 / global.openai.gpt-5.4 (no published rate). This entry's paths and context_window are unchanged; the recommendation change is pending a separate decision.",
       "paths": {
         "mantle_openai_responses": {
           "available": true,

@@ -70,14 +70,21 @@ def test_both_estimate_ai_files_require_matching_context_tiers() -> None:
 
 # --- Finding 2: runtime_openai_cris gate/dispatch ---
 
-def test_design_ai_scopes_mantle_only_to_gpt55_gpt54() -> None:
+def test_design_ai_scopes_runtime_ban_to_gpt55_gpt54() -> None:
     for f in DESIGN_AI_FILES:
         text = f.read_text(encoding="utf-8")
+        normalized = re.sub(r"\s+", " ", text)
         assert "runtime_openai_cris" in text, (
             f"{f}: no runtime_openai_cris carve-out for GPT-6/5.6 (Finding 2)"
         )
         assert "GPT-5.5" in text and "GPT-5.4" in text, (
-            f"{f}: mantle-only scoping must name GPT-5.5/GPT-5.4 specifically (Finding 2)"
+            f"{f}: the Converse/runtime ban must name GPT-5.5/GPT-5.4 specifically (Finding 2)"
+        )
+        # GPT-5.5 / GPT-5.4 model cards list us./global. runtime CRIS ids; the ban
+        # rests on their unpublished CRIS rate, not on a missing runtime path.
+        assert "mantle-only, no CRIS" not in normalized, f"{f}: stale GPT-5.5/5.4 mantle-only claim"
+        assert any(s in normalized for s in ("no published rate", "publishes no rate", "unpriced")), (
+            f"{f}: the GPT-5.5/5.4 runtime ban must state that their CRIS ids are unpriced"
         )
 
 
@@ -102,8 +109,11 @@ def test_schema_design_aws_ai_vocabulary_includes_runtime_openai_cris() -> None:
         "schema-design-aws-ai.md: migration_path vocabulary missing runtime_openai_cris (Finding 2)"
     )
     assert "GPT-5.5" in text and "GPT-5.4" in text, (
-        "schema-design-aws-ai.md: mantle-only scoping must name GPT-5.5/GPT-5.4 specifically, "
+        "schema-design-aws-ai.md: the Converse/runtime ban must name GPT-5.5/GPT-5.4 specifically, "
         "not blanket 'proprietary GPT' (Finding 2)"
+    )
+    assert "mantle-only, no CRIS" not in re.sub(r"\s+", " ", text), (
+        "schema-design-aws-ai.md: stale GPT-5.5/5.4 mantle-only claim"
     )
 
 

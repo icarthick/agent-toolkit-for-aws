@@ -88,9 +88,11 @@ STATIC_FALLBACK = {
     #     list price (parity with OpenAI's *data residency* tier)
     #   - Global CRIS (global. prefixed, GPT-5.6 only): OpenAI's standard list
     #     price — cost PARITY, for workloads with no residency constraint
-    # The GPT-5.6 family also has a LONG-CONTEXT (1M) tier at 2.0x input / 1.5x
-    # output per option, NOT represented here — a >272K workload priced from this
-    # table is understated. GPT-5.5 and GPT-5.4: mantle-only, no CRIS, no 1M tier.
+    # The GPT-5.6, GPT-5.5 and GPT-5.4 models also have a LONG-CONTEXT tier at 2.0x
+    # input / 1.5x output, NOT represented here — a >272K workload priced from this
+    # table is understated. GPT-5.5 and GPT-5.4 also have runtime CRIS ids
+    # (us./global. prefixed, model cards 2026-11-07), but AWS publishes no rate for
+    # them, so they have no row here: see UNPUBLISHED_CRIS_RATES.
     "openai.gpt-5.6-sol":                           {"input_per_1k_usd": 0.0044, "output_per_1k_usd": 0.022},
     "openai.gpt-5.6-terra":                         {"input_per_1k_usd": 0.0022, "output_per_1k_usd": 0.0132},
     "openai.gpt-5.6-luna":                          {"input_per_1k_usd": 0.00022, "output_per_1k_usd": 0.00132},
@@ -128,6 +130,15 @@ STATIC_FALLBACK = {
     "global.openai.gpt-6-luna":                     {"input_per_1k_usd": 0.00010, "output_per_1k_usd": 0.00050},
     "global.openai.gpt-6.1-sol":                    {"input_per_1k_usd": 0.0020, "output_per_1k_usd": 0.010},
 }
+
+
+# Runtime CRIS ids whose model cards publish In-Region (mantle) pricing only and
+# which have no AWS Price List rows (checked 2026-11-07). lookup() reports them as
+# unpriced rather than inferring a rate from the bare id.
+UNPUBLISHED_CRIS_RATES = frozenset({
+    "us.openai.gpt-5.5", "global.openai.gpt-5.5",
+    "us.openai.gpt-5.4", "global.openai.gpt-5.4",
+})
 
 
 def is_mantle_gpt(model_id: str) -> bool:
@@ -298,6 +309,11 @@ def lookup(region: str, model_id: str) -> dict:
             fb["note"] += ("; Standard tier, <=272K input tokens. For >272K, "
                            "use 2x input / 1.5x output rates.")
         return fb
+    if model_id in UNPUBLISHED_CRIS_RATES:
+        return unavailable(
+            f"AWS publishes no rate for the {model_id} cross-Region inference profile "
+            f"(its model card lists In-Region pricing only). Report this estimate as "
+            f"unpriced; do not apply the bare id's rate or a Geo/Global multiplier.")
     if is_mantle_gpt(model_id) or re.match(r"^[^.]+\.openai\.gpt-[56]", model_id):
         # Short-circuit: the PriceList API carries no rows for the proprietary GPT
         # models, so a live lookup would burn a round trip and still return nothing —

@@ -382,3 +382,26 @@ def test_unpriced_mantle_gpt_says_unavailable_not_nonexistent(monkeypatch):
     assert v["available"] is False
     assert "does NOT mean the model is unavailable" in v["note"]
     assert "aws.amazon.com/bedrock/pricing" in v["note"]
+
+
+def test_gpt55_gpt54_cris_ids_are_unpriced_not_inferred(monkeypatch):
+    # GPT-5.5 / GPT-5.4 runtime CRIS ids (us./global.) are valid invocation ids, but
+    # their model cards publish In-Region pricing only. They must report unpriced,
+    # never borrow the bare id's rate, and never call the PriceList API.
+    import boto3
+
+    def boom(*a, **k):
+        raise AssertionError("must not call the PriceList API for a GPT CRIS id")
+
+    monkeypatch.setattr(boto3, "client", boom)
+    for mid in ("us.openai.gpt-5.5", "global.openai.gpt-5.5",
+                "us.openai.gpt-5.4", "global.openai.gpt-5.4"):
+        assert mid not in bp.STATIC_FALLBACK
+        assert bp._static_fallback(mid) is None
+        v = bp.lookup("us-east-1", mid)
+        assert v["available"] is False, mid
+        assert v["input_per_1k_usd"] is None and v["output_per_1k_usd"] is None
+        assert "publishes no rate" in v["note"] and "unpriced" in v["note"]
+    # The bare mantle ids keep their published In-Region rate.
+    assert bp.lookup("us-east-1", "openai.gpt-5.5")["available"] is True
+    assert bp.lookup("us-east-1", "openai.gpt-5.4")["available"] is True

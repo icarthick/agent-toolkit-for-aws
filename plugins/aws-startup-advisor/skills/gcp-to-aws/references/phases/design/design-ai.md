@@ -236,9 +236,9 @@ otherwise use the cost-comparison cases below with `model_change` reflecting the
 `references/shared/openai-on-bedrock.md`: verified In-Region/Geo options use the
 data-residency-tier premium, while supported Global CRIS uses standard-rate parity.
 Report the actual option; do not downgrade solely for the modest verified premium.
-**GPT-5.6/GPT-6 only:** above 272K context, apply 2.0x input and 1.5x output rates only when
+**GPT-6/GPT-5.6/GPT-5.5/GPT-5.4:** above 272K context, apply 2.0x input and 1.5x output rates only when
 the selected model and inference option support that tier; the resulting gap may change
-the assessment. GPT-5.5/5.4 have no 1M tier. **Opus 5.5:** use the selected region/profile's
+the assessment. GPT-5.5/5.4 publish that tier for In-Region (mantle) only. **Opus 5.5:** use the selected region/profile's
 flat rates from `references/vendored/ai/bedrock-pricing-cache.md` throughout the full 1M context;
 do not apply the GPT multiplier. Verify other models' tiers individually.
 
@@ -409,9 +409,10 @@ GPT-5.x retains its separately dated API evidence and any selected Chat-to-Respo
 
 **A Chat Completions source is a supported near-drop-in for GPT-6 and GPT-5.6 — not a mandatory reshape.** All four GPT-6 models and the GPT-5.6 family list Chat Completions as a supported API on both mantle and runtime CRIS (per `openai-on-bedrock.md` § Access Paths); if `integration` evidence shows `chat.completions.create` for one of these models, the design may keep `chat.completions.create`/`choices[0].message` parsing — reshape to `responses.create` is optional, only for a Responses-only feature (runtime prompt caching, reasoning-item round-trips) or a demonstrated constraint. **GPT-5.5 and GPT-5.4 are the exception**: Chat Completions support is unconfirmed on their model cards (Responses on mantle is the only verified surface), so a Chat Completions source on either model still needs a planned reshape, probed against the target account before committing.
 
-**No Converse fallback for GPT-5.5/GPT-5.4 — GPT-5.6 and GPT-6 differ.** GPT-5.5 and GPT-5.4 are
-`bedrock-mantle` only and in-region only — there is no `bedrock-runtime` path and no cross-region
-inference profile for these two models. GPT-5.6 Sol/Terra/Luna and all four GPT-6 models (Astra,
+**No Converse fallback for GPT-5.5/GPT-5.4 — GPT-5.6 and GPT-6 differ.** The GPT-5.5 and GPT-5.4
+model cards now list `bedrock-runtime` CRIS ids (`us.`/`global.` prefixed), but AWS publishes no
+rate for them, so a `bedrock_models[]` entry on that path could not carry pricing; selecting it for
+these two is pending a separate decision, and this design keeps them on mantle until then. GPT-5.6 Sol/Terra/Luna and all four GPT-6 models (Astra,
 Sol, Luna, 6.1 Sol) DO have a `bedrock-runtime` CRIS path (`us.`/`global.` prefixed IDs, per
 `openai-on-bedrock.md` § Access Paths) — for these models, a region or feature need (Guardrails,
 Knowledge Bases, invocation logging, or a region outside the mantle matrix) is satisfied by
@@ -503,7 +504,8 @@ Write `aws-design-ai.json` to `$MIGRATION_DIR/`.
 - [ ] If `ai_source` includes `"openai"`: every model that `shared/openai-on-bedrock.md` lists as available on Bedrock, and whose target region carries it, is mapped to **itself** with `model_change: false` — not to a Claude/Nova substitute
 - [ ] If `honest_assessment == "recommend_stay"`: `honest_assessment_reason` names a non-cost blocker (cost parity alone is never sufficient for an OpenAI source)
 - [ ] No `bedrock_models[]` entry pairs **GPT-5.5 or GPT-5.4** with a Converse/`bedrock-runtime`
-      migration path (those two models only — mantle-only, no CRIS). GPT-5.6 and GPT-6 models MAY
+      migration path (those two models only — their `us.`/`global.` CRIS ids are unpriced and
+      selecting them is pending a separate decision). GPT-5.6 and GPT-6 models MAY
       use `migration_path: "runtime_openai_cris"` on `bedrock-runtime` — this is NOT a violation.
 - [ ] `regional_warnings` is present (empty array `[]` if no issues; populated if any service unavailable in target region)
 - [ ] `multi_model_warnings` is present (empty array `[]` if single model or no coordination issues)

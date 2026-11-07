@@ -42,7 +42,7 @@ Two consequences that invert the previous decision logic:
 2. **The cost of a same-model move depends on the inference option — state it conditionally.** GPT-5.x In-Region and Geo
    CRIS are priced at OpenAI's _data residency_ tier, exactly 1.10x the standard list price, so those moves cost
    ~10% more. **GPT-5.6 on Global CRIS is priced at the standard list price — cost parity** — available only when
-   the workload has no data-residency constraint (GPT-5.5 / GPT-5.4 have no CRIS at all). See
+   the workload has no data-residency constraint (GPT-5.5 / GPT-5.4 CRIS has no published rate). See
    `shared/openai-on-bedrock.md`. The non-cost case — AWS commitments, IAM/VPC/CloudTrail governance, residency,
    prompt caching, one vendor relationship — carries the in-region path; never present that path as free or neutral.
    For Astra, use its separately dated Bedrock rates and verify the source provider's rate before comparing.
@@ -71,8 +71,8 @@ GPT-5.4, the target is **the same model on Bedrock**.
 | GPT-5.6 Sol   | GPT-5.6 Sol    | `openai.gpt-5.6-sol` / `us.` `global.` prefixed         | `strong_migrate` — same model; parity on Global CRIS, else +10% |
 | GPT-5.6 Terra | GPT-5.6 Terra  | `openai.gpt-5.6-terra` / `us.` `in.` `global.` prefixed | `strong_migrate` — same model; parity on Global CRIS, else +10% |
 | GPT-5.6 Luna  | GPT-5.6 Luna   | `openai.gpt-5.6-luna` / `us.` `in.` `global.` prefixed  | `strong_migrate` — same model; parity on Global CRIS, else +10% |
-| GPT-5.5       | GPT-5.5        | `openai.gpt-5.5` (mantle only)                          | `strong_migrate` — same model, ~10% over OpenAI std             |
-| GPT-5.4       | GPT-5.4        | `openai.gpt-5.4` (mantle only)                          | `strong_migrate` — same model, ~10% over OpenAI std             |
+| GPT-5.5       | GPT-5.5        | `openai.gpt-5.5` / `us.` `global.` prefixed (CRIS unpriced) | `strong_migrate` — same model, ~10% over OpenAI std (mantle) |
+| GPT-5.4       | GPT-5.4        | `openai.gpt-5.4` / `us.` `global.` prefixed (CRIS unpriced) | `strong_migrate` — same model, ~10% over OpenAI std (mantle) |
 
 Then apply the **region gate** below. Record `model_change: false` and the chosen path in
 `aws-design-ai.json` → `ai_architecture.code_migration`: `migration_path: "mantle_openai_chat"` for
@@ -104,8 +104,9 @@ regions — offer it, stating the data-residency implication of cross-region rou
 Global routes anywhere and is the cost-parity option). Only a workload that requires strictly in-region processing
 in a region outside the mantle matrix falls through to Tier 1.
 
-**GPT-5.5 / GPT-5.4:** hard gate. Mantle in-region only, no CRIS, no fallback. If the target region is not in the
-matrix:
+**GPT-5.5 / GPT-5.4:** hard gate on the mantle matrix. Their model cards now also list `bedrock-runtime` CRIS ids
+(`us.` / `global.`, no in-region form), but publish no rate for them, and offering that path in this gate is pending
+a separate decision; until then the gate stays as follows. If the target region is not in the matrix:
 
 1. Prefer offering a **region change** to a supported region, if no data-residency constraint pins the workload.
    This preserves the zero-behavior-delta benefit, which is the whole point of Tier 0.
@@ -283,7 +284,7 @@ rather than dismissing it. For a long-context (>272K) workload the gap is much w
 | Chat Completions                           | Preserve supported Chat when selected                       | Reshape only for a selected API change; verify the model and endpoint                                                     |
 | Function calling                           | Supported on GPT-5.x via mantle; Claude tools via Converse  | Same-model keeps tool semantics identical                                                            |
 | Reasoning effort                           | `reasoning={"effort": ...}` on mantle                       | `none` / `low` / `medium` / `high` / `xhigh` / `max`                                                 |
-| Prompt caching                             | GPT-5.6 only (90% off cached input)                         | Not listed for GPT-5.5 / 5.4; Claude has its own caching                                             |
+| Prompt caching                             | GPT-5.6 only (90% off cached input)                         | GPT-5.5 / 5.4: implicit only, Responses on `bedrock-runtime`; Claude has its own caching             |
 | Streaming                                  | Supported                                                   | Verify per surface                                                                                   |
 | Vision                                     | GPT-5.x (image input) or Claude / Llama 4                   | Same-model preserves behavior                                                                        |
 | JSON mode                                  | Claude (excellent), Nova Pro (good)                         | Most models via prompt                                                                               |
@@ -340,8 +341,10 @@ and closed to new customers as of July 30, 2026.
 Choose Claude / Nova via Converse when the workload needs Knowledge Bases, intelligent prompt routing, structured
 outputs, or application inference profiles — none of which the GPT path offers. Note what no longer forces a family
 switch for GPT-5.6: its `bedrock-runtime` CRIS path provides cross-region inference, invocation logs, and
-Guardrails (Converse API only; prompt caching is Responses-only on runtime). For GPT-5.5 / GPT-5.4, Guardrails,
-logging, and cross-region reach still require a different model. The mantle GPT path is the smallest change; the
+Guardrails (Converse API only; prompt caching is Responses-only on runtime). GPT-5.5 / GPT-5.4 cards now list
+the same runtime CRIS path (`us.` / `global.`), but it has no published rate and choosing it for these two is pending a
+separate decision; until then, for GPT-5.5 / GPT-5.4, Guardrails, logging, and cross-region reach still select a
+different model. The mantle GPT path is the smallest change; the
 Bedrock-native path remains the most feature-complete.
 
 ### High-spend tiering

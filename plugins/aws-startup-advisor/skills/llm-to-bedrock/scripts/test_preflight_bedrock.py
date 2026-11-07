@@ -193,6 +193,8 @@ def test_mantle_model_detection_excludes_gpt_oss_and_cris_forms():
     assert p.is_mantle_model("us.openai.gpt-5.6-sol") is False
     assert p.is_mantle_model("in.openai.gpt-5.6-luna") is False
     assert p.is_mantle_model("global.openai.gpt-5.6-terra") is False
+    assert p.is_mantle_model("us.openai.gpt-5.5") is False
+    assert p.is_mantle_model("global.openai.gpt-5.4") is False
     assert p.is_mantle_model("anthropic.claude-sonnet-4-6") is False
     assert p.is_mantle_model("amazon.nova-lite-v1:0") is False
 
@@ -221,17 +223,19 @@ def test_mantle_authz_error_points_at_mantle_actions_not_invoke_model():
 
 
 def test_mantle_model_unavailable_remedy_is_family_split():
-    # Verified 2026-08-21: mantle itself is in-region only, but GPT-5.6 now has a
-    # bedrock-runtime CRIS path — so the 404 remedy must offer the CRIS form for
-    # 5.6 while making clear 5.5/5.4 have no prefixed form. An earlier version of
-    # this test asserted the opposite (never suggest a prefix), which matched the
-    # pre-2026-08-21 docs.
+    # Mantle itself is in-region only, but GPT-5.6 (2026-08-21) and GPT-5.5/5.4
+    # (model cards 2026-11-07) have a bedrock-runtime CRIS path — so the 404 remedy
+    # must offer the CRIS form, and for 5.5/5.4 only the us./global. prefixes, with
+    # the unpublished-rate and default-project caveats.
     v = p.classify_mantle_error(404, "model not found")
     assert v["ok"] is False
     assert v["reason"] == "model_unavailable"
     assert "in-region only" in v["detail"]
     assert "CRIS" in v["detail"] and "us./in./global." in v["detail"]
     assert "GPT-5.5/5.4" in v["detail"]
+    tail = v["detail"].split("GPT-5.5/5.4", 1)[1]
+    assert "us./global." in tail and "in." not in tail
+    assert "no published rate" in tail and "default project" in tail
 
 def test_mantle_throttle_is_ok_for_preflight():
     v = p.classify_mantle_error(429, "too many tokens per minute")

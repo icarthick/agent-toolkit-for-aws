@@ -104,7 +104,9 @@ the engine skips the same-model Mantle candidate and evaluates its existing capa
 fallbacks. Governance requirements select the exact same GPT-5.6 or GPT-6 model through
 `runtime_converse` only when the requested Global or geography-scoped CRIS profile is cataloged
 for that model and source region; an unsupported profile falls through to an eligible documented
-runtime candidate or remains an explicit decision. GPT-5.5/5.4 remain mantle-only. GPT-6 Astra's
+runtime candidate or remains an explicit decision. GPT-5.5/5.4 remain mantle-only in this catalog;
+their model cards now list `us.`/`global.` runtime CRIS ids (2026-11-07), and offering them as runtime
+candidates is pending a separate decision. GPT-6 Astra's
 runtime surface lacks `Invoke` support (Responses/Chat Completions/Converse only), while
 Sol/Luna/6.1 Sol support all four APIs. Every selected path remains provisional until it is probed
 in the target account and region. Azure OpenAI remains an explicit `provider_module_pending`
