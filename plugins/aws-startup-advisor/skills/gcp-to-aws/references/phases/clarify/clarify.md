@@ -80,6 +80,13 @@ Four dispositions per row: **DETECTED** (read from discovery), **PROPOSED** (the
 recommendation, changeable), **ESSENTIAL** (cannot be defaulted; must be answered), **N/A**
 (does not apply to this estate — shown so the user can see it was considered).
 
+Tell the user which answers reach the output: the target region
+(`design_constraints.target_region`) and the compliance answer
+(`design_constraints.compliance`) are carried into the design, the cost estimate and, when
+Generate runs, the generated Terraform (the provider's `aws_region`, and the
+compliance-conditional Config and Security Hub controls in `baseline.tf`). The full consumer
+list is the "Who consumes these" table in `clarify-global.md`.
+
 **Five of Category A's questions are canonical, shared with `azure-to-aws`** —
 `references/vendored/clarify/`. See `clarify-global.md` for which ones and why. Categories B
 (config gaps), C (compute), D (database), F (AI), G (agentic), and H (startup programs) are
