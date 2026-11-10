@@ -82,7 +82,7 @@ recommendation, changeable), **ESSENTIAL** (cannot be defaulted; must be answere
 
 Tell the user which answers reach the output: the target region
 (`design_constraints.target_region`) and the compliance answer
-(`design_constraints.compliance`) are carried into the design, the cost estimate and, when
+(`design_constraints.compliance`) are reflected in the design, the cost estimate and, when
 Generate runs, the generated Terraform (the provider's `aws_region`, and the
 compliance-conditional Config and Security Hub controls in `baseline.tf`). The full consumer
 list is the "Who consumes these" table in `clarify-global.md`.
