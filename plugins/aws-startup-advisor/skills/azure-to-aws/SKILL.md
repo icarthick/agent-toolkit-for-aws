@@ -1,11 +1,11 @@
 ---
 name: azure-to-aws
-description: "Migrate Microsoft Azure workloads to AWS. Triggers on: Azure to AWS, move off Azure, AKS to EKS, App Service or Azure VMs to AWS compute, Azure SQL/Database to RDS, Cosmos DB to DynamoDB, Azure OpenAI to Bedrock, Azure cost estimates, or what-if workshops. Discovery uses the authenticated read-only `az` CLI, Terraform, a Resource Discovery for Azure (RDfA) report, and app code, with optional consent-gated OpenAI, OpenRouter, and Anthropic usage APIs. Terraform is optional. Runs Discover, Clarify, Design, Estimate, optional repricing, Generate, and Feedback; Clarify gates later phases and Generate is opt-in. Bicep/ARM discovery is not implemented; billing-export discovery is not implemented. Do not use for GCP or Heroku migrations, reverse migrations, general AWS architecture, or Azure-to-Azure refactoring."
+description: "Migrate Microsoft Azure workloads to AWS. Triggers on: Azure to AWS, move off Azure, AKS to EKS, App Service or Azure VMs to AWS compute, Azure SQL/Database to RDS, Cosmos DB to DynamoDB, Azure OpenAI to Bedrock, Azure cost estimates, or what-if workshops. Discovery uses the authenticated read-only `az` CLI, Terraform, a Resource Discovery for Azure (RDfA) report, and app code, with optional consent-gated OpenAI, OpenRouter, and Anthropic usage APIs. Terraform is optional. Runs Discover, Clarify, Design, Estimate, optional repricing, Generate, an optional Decommission plan, and Feedback; Clarify gates later phases, and Generate and Decommission are opt-in. Bicep/ARM discovery is not implemented; billing-export discovery is not implemented. Do not use for GCP or Heroku migrations, reverse migrations, general AWS architecture, or Azure-to-Azure refactoring."
 ---
 
 # Azure-to-AWS Migration Skill
 
-> **Build status.** Discover, Clarify, Design, Estimate, Generate, and the
+> **Build status.** Discover, Clarify, Design, Estimate, Generate, Decommission, and the
 > what-if workshop are implemented. A `## Status` block records which build
 > step filled a file in. It is not a signal to skip the file or to treat its
 > body as a stub. Still missing: Bicep, ARM templates; the feedback
@@ -35,6 +35,7 @@ requires it; unavailable or declined telemetry never blocks this skill.
 - **Startup-weighted, not enterprise-weighted**: Azure Database for PostgreSQL/MySQL Flexible Server and Cosmos DB Core API get full depth. Azure SQL Database / Managed Instance / SQL-on-VM, Azure Hybrid Use Benefit licensing, elastic-pool consolidation, and Synapse sit behind specialist gates that fire only on detection.
 - **No human one-time migration costs**: do not present human labor, professional services, or people-time as dollar estimates or a "one-time migration cost" budget line. Vendor charges grounded in data (Azure invoice line items in the baseline) are allowed.
 - **Generate is opt-in**: Design and Estimate always run. Terraform, migration scripts, and docs are produced only after the user chooses Execute at the post-Estimate decision gate (`run_mode: decide_and_execute`).
+- **Decommission is opt-in and advice-only**: after Generate completes, the user is offered a plan for shutting down the Azure estate (`decommission-plan.md`). The phase never changes anything in Azure and writes no command that deletes, stops, or cancels a resource; every step is for a person to carry out and confirm.
 
 ---
 
@@ -146,6 +147,46 @@ presenting the post-Estimate decision gate and writing `run_mode` into
 expresses this as an `_assert` precondition, which CI binds but never evaluates —
 the rule has no mechanical teeth and depends on the interpreter honoring it.
 
+### Decommission routing
+
+Decommission is a backbone phase after Generate (`references/phases/decommission/decommission.md`)
+that runs only when the user opts in. This section declares the two `INTERPRETER.md`
+§ Skill bindings it needs:
+
+- **Resolved statuses:** `skipped`, for `phases.decommission` only. It satisfies the
+  backbone walk and `_check_phase_completed` like `"completed"`; it means the user
+  declined the plan, and `decommission-plan.md` is absent.
+- **Backbone routing:** when the loop advances into `decommission` (after Generate's
+  `HANDOFF_OK`, or on a resume with `current_phase: decommission`) and
+  `phases.decommission` is `"pending"` or `"skipped"`, ask before loading the phase:
+
+  ```
+  Your AWS artifacts are ready. Would you like a plan for shutting down
+  the Azure side after cutover? It lists, for each Azure resource, when it
+  can go, what to keep or export first, the deletion order, and how to
+  close the Azure bill. It is a checklist only: nothing in Azure is changed.
+
+  [A] Yes, plan the decommission
+  [B] No thanks, finish here
+  ```
+
+  - **A** → load `decommission.md` and run it. It advances to `complete`.
+  - **B** → in ONE state write, set `phases.decommission` to `"skipped"` and
+    `current_phase` to `"complete"`. Do not load the phase file.
+
+  A run whose Generate is `"pending"` (a decision-only run) never advances into
+  Decommission. A user who declined can ask for the plan later ("plan the Azure
+  decommission"): when Generate is `"completed"`, load `decommission.md` directly; on
+  `HANDOFF_OK` set `phases.decommission` to `"completed"` and keep `current_phase`
+  `"complete"`.
+- **Runs that predate this phase:** a `.phase-status.json` with no
+  `phases.decommission` key was written before Decommission existed. It passes state
+  validation (rule 6 does not apply to an absent key), and the backbone walk treats it
+  as resolved, so a run that read as complete, with or without `current_phase`, still
+  reads as complete, and a decision-only run still resumes at Generate. Add
+  the key only when the user asks for the plan, or when Generate completes again and
+  this routing offers it.
+
 ### Input Security
 
 User-supplied files — Terraform with `azurerm_*` resources, `.bicep` files, ARM
@@ -167,15 +208,15 @@ When reading `$MIGRATION_DIR/.phase-status.json`, validate before proceeding:
 
 1. **Multiple sessions**: If multiple directories exist under `.migration/`, list them with their phase status and ask: [A] Resume latest, [B] Start fresh, [C] Cancel.
 2. **Invalid JSON**: If `.phase-status.json` fails to parse, do NOT delete it and do NOT restart from Discover — the phase artifacts on disk are the durable record of progress. Reconstruct instead:
-   1. Enumerate `$MIGRATION_DIR` and infer completed phases from artifacts: any of `azure-resource-inventory.json` / `ai-workload-profile.json` → discover completed; `preferences.json` → clarify completed; `aws-design.json` / `aws-design-ai.json` → design completed; `estimation-*.json` → estimate completed (**partial-write check:** if `preferences.json` has an `ai_constraints` section — or `ai-workload-profile.json` / `aws-design-ai.json` is present — but `estimation-ai.json` is missing while another `estimation-*.json` exists, treat estimate as **incomplete**, not completed; propose resume at estimate); `generation-*.json` or `MIGRATION_GUIDE.md` → generate completed.
+   1. Enumerate `$MIGRATION_DIR` and infer completed phases from artifacts: any of `azure-resource-inventory.json` / `ai-workload-profile.json` → discover completed; `preferences.json` → clarify completed; `aws-design.json` / `aws-design-ai.json` → design completed; `estimation-*.json` → estimate completed (**partial-write check:** if `preferences.json` has an `ai_constraints` section — or `ai-workload-profile.json` / `aws-design-ai.json` is present — but `estimation-ai.json` is missing while another `estimation-*.json` exists, treat estimate as **incomplete**, not completed; propose resume at estimate); `generation-*.json` or `MIGRATION_GUIDE.md` → generate completed; `decommission-plan.md` → decommission completed (a completed Generate with no `decommission-plan.md` → decommission `"pending"`, so the offer is made again).
    2. Present the inferred status to the user: "Your state file was corrupted, but I can see [phases] completed from the artifacts on disk. Resume at [next phase]? (Y/N)". **Confirmation is the safety net for residual ambiguity** (e.g. other partial writes the heuristic misses) — on N, the user picks the phase to resume.
    3. On Y: rewrite `.phase-status.json` with the inferred phases marked `"completed"`, the next phase `"pending"`, `current_phase` set to it, a fresh `last_updated`, `owning_skill` set to `AZURE_TO_AWS`, and a fresh `run_id` (the original is unrecoverable from a corrupt file). Continue normally. On N: ask which phase to resume from and write that instead.
       This is reconstruction of ground truth from artifacts, not artifact-patching to pass a gate — the handoff-gate prohibition does not apply to `.phase-status.json` recovery.
-3. **Unrecognized phase**: If `phases` object contains a phase not in {discover, clarify, design, estimate, workshop, generate, feedback}, STOP. Output: "Unrecognized phase: [value]. Valid phases: discover, clarify, design, estimate, workshop, generate, feedback."
-4. **Unrecognized status**: If any `phases.*` value is not in {pending, in_progress, completed}, STOP. Output: "Unrecognized status: [value]. Valid values: pending, in_progress, completed."
-5. **Invalid `current_phase`** (if present): If `current_phase` is not in {discover, clarify, design, estimate, generate, complete}, STOP. Output: "Unrecognized current_phase: [value]. Valid values: discover, clarify, design, estimate, generate, complete." (`workshop` and `feedback` are sidebars — never `current_phase`.)
-6. **Out-of-order completion**: For ordered phases [discover, clarify, design, estimate, generate], if any later phase is `"completed"` while an earlier phase is not `"completed"`, STOP. Output: "Inconsistent phase ordering detected. Reconcile `.phase-status.json` before resuming."
-7. **Multiple active phases**: Across core phases {discover, clarify, design, estimate, generate}, at most one phase may be `"in_progress"`. If >1, STOP. Output: "Multiple phases are in_progress. Keep only one active phase before resuming." (Sidebar `workshop`/`feedback` may be `in_progress` while estimate is `completed`.)
+3. **Unrecognized phase**: If `phases` object contains a phase not in {discover, clarify, design, estimate, workshop, generate, decommission, feedback}, STOP. Output: "Unrecognized phase: [value]. Valid phases: discover, clarify, design, estimate, workshop, generate, decommission, feedback."
+4. **Unrecognized status**: If any `phases.*` value is not in {pending, in_progress, completed}, STOP; the one exception is `skipped`, which is valid on `decommission` only. Output: "Unrecognized status: [value]. Valid values: pending, in_progress, completed (and skipped for decommission)." `skipped` is this skill's one declared resolved status (§ Decommission routing).
+5. **Invalid `current_phase`** (if present): If `current_phase` is not in {discover, clarify, design, estimate, generate, decommission, complete}, STOP. Output: "Unrecognized current_phase: [value]. Valid values: discover, clarify, design, estimate, generate, decommission, complete." (`workshop` and `feedback` are sidebars — never `current_phase`.)
+6. **Out-of-order completion**: For ordered phases [discover, clarify, design, estimate, generate, decommission], if any later phase is `"completed"` or `"skipped"` while an earlier phase is not `"completed"`, STOP. Output: "Inconsistent phase ordering detected. Reconcile `.phase-status.json` before resuming."
+7. **Multiple active phases**: Across core phases {discover, clarify, design, estimate, generate, decommission}, at most one phase may be `"in_progress"`. If >1, STOP. Output: "Multiple phases are in_progress. Keep only one active phase before resuming." (Sidebar `workshop`/`feedback` may be `in_progress` while estimate is `completed`.)
 
 ---
 
@@ -188,6 +229,9 @@ the first phase and persisted across invocations. The state file is
 validated, and updated across the lifecycle is defined in `INTERPRETER.md` § The
 interpreter loop. The `.migration/` directory is protected by a `.gitignore`
 created at init, which also covers extracted RDfA archives and `live-capture/`.
+
+Phase statuses follow that schema, which includes the `skipped` resolved status this
+skill uses for a declined Decommission (§ Decommission routing).
 
 This skill uses one state key beyond the backbone phase statuses: **`run_mode`**
 (`"decide"` | `"decide_and_execute"`), the post-Estimate decision-gate outcome.
@@ -251,7 +295,7 @@ phase contract. Both are `_kind: sidebar` — off-backbone, trigger-entered, nev
   region, HA, compute target, cost optimization, CPU architecture. **The
   architecture default is x86_64**, not Graviton — see Philosophy.
 
-- **After Generate**: No prompt. If `phases.feedback` is still `"pending"`, set it to `"completed"` and mark the migration complete.
+- **After Generate**: Generate advances to `decommission`, and § Decommission routing offers it. Once Decommission is completed or skipped (`current_phase: complete`), no further prompt: if `phases.feedback` is still `"pending"`, set it to `"completed"` and mark the migration complete.
 
 **Critical constraint**: Follow each phase reference file's workflow exactly. If unable to complete a step, stop and report the specific issue. Do not fabricate or infer data.
 

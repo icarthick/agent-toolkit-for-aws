@@ -186,7 +186,7 @@ The skill requires at least one agentic component. Non-agent compute or data mig
 
 ## Cloud Migration
 
-The `azure-to-aws`, `gcp-to-aws`, and `heroku-to-aws` skills run the same six-phase flow: **discover**, **clarify**, **design**, **estimate**, **generate**, and **feedback**. Clarify must finish before design, estimate, or generate, so the plan is never built on unstated assumptions. Generate runs only after you choose to produce the artifacts at the post-estimate decision gate. The what-if workshop is optional and sits beside estimate; it is not an extra phase.
+The `azure-to-aws`, `gcp-to-aws`, and `heroku-to-aws` skills run the same six-phase flow: **discover**, **clarify**, **design**, **estimate**, **generate**, and **feedback**. Clarify must finish before design, estimate, or generate, so the plan is never built on unstated assumptions. Generate runs only after you choose to produce the artifacts at the post-estimate decision gate. After generate, `azure-to-aws` also offers an optional **decommission** step: a checklist for shutting down the Azure side after cutover (when each resource can go, what to keep or export first, the deletion order, and closing the Azure bill). It changes nothing in Azure. The what-if workshop is optional and sits beside estimate; it is not an extra phase.
 
 ### How It Works
 

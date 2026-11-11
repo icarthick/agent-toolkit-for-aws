@@ -47,8 +47,8 @@
       "minProperties": 1,
       "additionalProperties": {
         "type": "string",
-        "enum": ["pending", "in_progress", "completed"],
-        "description": "Phase status. Progresses pending -> in_progress -> completed and never goes backward, except a confirmed re-entry reset (see INTERPRETER.md § _re_entry_guard). At most one backbone phase is in_progress at a time."
+        "enum": ["pending", "in_progress", "completed", "skipped"],
+        "description": "Phase status. Progresses pending -> in_progress -> completed and never goes backward, except a confirmed re-entry reset (see INTERPRETER.md § _re_entry_guard). At most one backbone phase is in_progress at a time. 'skipped' is a resolved status a skill's routing sets directly from pending (INTERPRETER.md § Skill bindings, Resolved statuses); it is valid only for the phases the owning skill's SKILL.md declares it for."
       }
     }
   }
