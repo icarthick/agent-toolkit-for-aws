@@ -53,15 +53,14 @@ Gemini 3.5 Flash is now GA (May 2026) — the current flagship Flash model. Gemi
 | Claude Sonnet 5  | Agentic tasks, tool use                                             | High       | High    | 1M      |
 | Claude Opus 5.5  | Demanding reasoning; no Batch                                       | High       | Measure | 1M      |
 | Claude Haiku 5.5 | Simple + fast                                                       | Medium     | High    | 1M      |
-| Llama 4 Maverick | Cost-effective + multimodal                                         | Medium     | High    | 1M      |
-| Llama 4 Scout    | Ultra-long context, cheapest                                        | Medium     | Medium  | 10M     |
+| Llama 4 Maverick | Cost-effective + multimodal — **Legacy — EOL 2027-03-30**; prefer Nova 2 Lite / Nova Pro | Medium     | High    | 1M      |
+| Llama 4 Scout    | Ultra-long context, cheapest — **Legacy — EOL 2027-03-30**; prefer Nova Micro / Nova Lite (Nova 2 Lite for 1M context) | Medium     | Medium  | 10M     |
 | Nova 2 Pro       | AWS flagship, multimodal                                            | High       | High    | 1M      |
 | Nova 2 Lite      | AWS mid-tier, long context                                          | Medium     | High    | 1M      |
 | Nova Pro         | AWS balanced                                                        | Medium     | High    | 300K    |
 | Nova Lite        | AWS fast + cheapest                                                 | Medium     | High    | 300K    |
 | Nova Micro       | AWS fastest, text-only                                              | Low        | High    | 128K    |
-| Nova Premier     | Complex reasoning — **Legacy** (EOL Sep 14, 2026) prefer Nova 2 Pro | High       | Medium  | 1M      |
-| DeepSeek-R1      | Chain-of-thought reasoning                                          | High       | Medium  | 128K    |
+| DeepSeek-R1      | Chain-of-thought reasoning — **Legacy — EOL 2027-03-30**; prefer Claude Opus 5.5        | High       | Medium  | 128K    |
 | Mistral Large 3  | EU/Multilingual                                                     | High       | Medium  | 256K    |
 
 ---
@@ -76,10 +75,11 @@ Gemini 3.5 Flash is now GA (May 2026) — the current flagship Flash model. Gemi
 | Gemini 3.1 Pro | $2.00 / $12.00        | Claude Opus 5.5 (Global)         | $4.00 / $20.00 | Gemini 43% cheaper  |
 | Gemini 3.1 Pro | $2.00 / $12.00        | Claude Opus 5.5 (commercial Geo) | $4.40 / $22.00 | Gemini 48% cheaper  |
 | Gemini 3.1 Pro | $2.00 / $12.00        | Nova 2 Pro                       | $1.38 / $11.00 | Bedrock 14% cheaper |
-| Gemini 3 Pro   | $0.50 / $3.00         | Llama 4 Maverick                 | $0.24 / $0.97  | Bedrock 64% cheaper |
-| Gemini 3 Pro   | $0.50 / $3.00         | Llama 4 Scout                    | $0.17 / $0.66  | Bedrock 75% cheaper |
+| Gemini 3 Pro   | $0.50 / $3.00         | Nova 2 Lite                      | $0.33 / $2.75  | Bedrock 15% cheaper |
 | Gemini 3 Pro   | $0.50 / $3.00         | Nova Pro                         | $0.80 / $3.20  | Gemini 17% cheaper  |
 
+> **Gemini 3 Pro Legacy alternatives (not a Best Bedrock Match):** Llama 4 Maverick ($0.24 / $0.97, Bedrock 64% cheaper) and Llama 4 Scout ($0.17 / $0.66, Bedrock 75% cheaper) are **Legacy — EOL 2027-03-30**. Name them only as alternatives with that label, never as the recommendation; Nova 2 Lite is the closest Active match (1M context, text + image + video input).
+>
 > **Gemini 3.1 Pro breakpoint:** $4.00/$18.00 per 1M for prompts >200k tokens. Table above uses ≤200k rates.
 >
 > **Gemini 2.5 Pro** is retired (Vertex AI Oct 20, 2026; Developer API shutdown Dec 1, 2026). Google's named replacement is Gemini 3.8 Flash — see the Flash/Lite tier — not a Pro model. Its legacy mapping row is under Legacy/Specialized.
@@ -109,7 +109,7 @@ Gemini 3.5 Flash is now GA (May 2026) — the current flagship Flash model. Gemi
 | Gemini 2.0 Flash                                             | **Legacy — retired on Vertex AI and the Gemini Developer API Jun 1, 2026 (upgrade 3.5 Flash-Lite on Vertex, 3.6 Flash on the Developer API). Was $0.10 / $0.40.** | Nova Micro; Claude Haiku 5.5 when quality matters more than cost | $0.035 / $0.14; US Geo $0.11 / $0.55 up to 100K prompt tokens | Nova Micro was 65% cheaper than the retired rate; if still named in code, go straight to Bedrock rather than via 3.5 Flash-Lite |
 | Gemini 2.0 Flash-Lite                                        | **Legacy — retired on Vertex AI and the Gemini Developer API Jun 1, 2026 (upgrade 3.5 Flash-Lite on Vertex, 3.1 Flash-Lite on the Developer API). Was $0.075 / $0.30.** | Nova Micro / Nova Lite            | $0.035 / $0.14; $0.06 / $0.24                                                               | Nova Micro was 53% cheaper than the retired rate; for a live comparison use the 3.5 Flash-Lite or 3.1 Flash-Lite rows above |
 | Gemini 1.5 Pro                                               | **Legacy — EOL Sep 24, 2025. Migrate to Gemini 3.1 Pro or 3.8 Flash.**        | Claude Sonnet 5                   | $2.00 / $10.00                                                                              | If still in use, migrate source model first                               |
-| text-bison / chat-bison                                      | Legacy                                                                        | Llama 4 Scout                     | $0.17 / $0.66                                                                               | Bedrock (better quality + cheaper)                                        |
+| text-bison / chat-bison                                      | Legacy                                                                        | Nova Lite                         | $0.06 / $0.24                                                                               | Bedrock (better quality + cheaper); Llama 4 Scout ($0.17 / $0.66) is Legacy — EOL 2027-03-30, alternative only |
 | text-embedding-004                                           | $0.025 / N/A                                                                  | Titan Embeddings V2               | $0.02 / N/A                                                                                 | Bedrock 20% cheaper                                                       |
 | Gemini Embedding 2 (multimodal — text/image/video/audio/PDF) | text $0.20/1M, image $0.45/1M ($0.00012/img), audio $6.50/1M, video $12.00/1M | Amazon Nova Multimodal Embeddings | text $0.135/1M, image $0.00006/unit (see `references/vendored/ai/bedrock-pricing-cache.md` § Multimodal embeddings) | Bedrock ~32% cheaper on text, ~50% cheaper on image                       |
 | imagen-*                                                     | Varies                                                                        | Stable Image Core                 | $0.04/img                                                                                   | Nova Canvas past EOL (2026-09-30); Ultra $0.08/img if quality-first |
@@ -130,20 +130,20 @@ Gemini 3.1 Pro Preview matches or beats Opus 4.6 on most reasoning benchmarks at
 
 ### Speed-First
 
-Gemini Flash → **Nova Micro** (<200ms, text-only, cheapest), **Haiku 5.5** (vision; tune effort and measure latency on the target workload), or **Llama 4 Scout** (<300ms, cheapest capable)
+Gemini Flash → **Nova Micro** (<200ms, text-only, cheapest) or **Haiku 5.5** (vision; tune effort and measure latency on the target workload). Llama 4 Scout (<300ms) is **Legacy — EOL 2027-03-30** — an alternative only, never the pick
 
 Haiku 5.5 has a 1M context window, but its price changes above 100K input tokens per request. Standard Global input/output rates per 1M tokens are $0.10/$0.50 up to 100K and $0.50/$2.50 above 100K; US Geo rates are $0.11/$0.55 and $0.55/$2.75. These are token prices, not a guaranteed workload saving. Recount target tokens and read the Haiku 5.5 target contract in `references/vendored/ai/ai-anthropic-to-bedrock.md` before migration. The portfolio's Medium complexity rating is a conservative guide classification, not an official model limit.
 
 ### Cost-First
 
 - Gemini Flash/Lite → **Nova Lite** (54-88% cheaper), **Nova Micro** (53-64% cheaper)
-- Gemini Pro → **Llama 4 Maverick** ($0.24/$0.97, 63% cheaper than Gemini 3 Pro) or **Llama 4 Scout** ($0.17/$0.66, 75% cheaper)
+- Gemini 3 Pro → **Nova 2 Lite** ($0.33/$2.75, 15% cheaper than Gemini 3 Pro); Nova Pro ($0.80/$3.20) is 20% more expensive. Llama 4 Maverick ($0.24/$0.97, 64% cheaper) and Llama 4 Scout ($0.17/$0.66, 75% cheaper) are Legacy — EOL 2027-03-30 — alternatives only
 
 ### Balanced
 
 - Gemini 3.1 Pro → **Nova 2 Pro** (-14% cost, AWS-native) or **Claude Sonnet 5** (-13% cost, stronger agentic reliability)
 - Gemini 3.8 Flash → **Nova Pro** (-9% cost at the 2026 rate, AWS-native) or **Nova Lite** (-93% cost)
-- Gemini 3 Pro → **Llama 4 Maverick** (-63%), **Nova Pro** (+20%)
+- Gemini 3 Pro → **Nova 2 Lite** (-15%), **Nova Pro** (+20%); Llama 4 Maverick (-64%) is Legacy — EOL 2027-03-30, alternative only
 
 ---
 
@@ -156,17 +156,18 @@ Haiku 5.5 has a 1M context window, but its price changes above 100K input tokens
 | Model            | Monthly Cost   |
 | ---------------- | -------------- |
 | Gemini 3 Pro     | $300           |
-| Llama 4 Maverick | $109 (-64%)    |
-| Llama 4 Scout    | $75 (-75%)     |
+| Nova 2 Lite      | $256 (-15%)    |
 | Nova Pro         | $360 (+20%)    |
 | Claude Sonnet 5  | $1,050 (+250%) |
 
-**High (10-100M tokens/day):** Cost optimization critical. Recommend multi-model tiered approach. Llama 4 Maverick/Scout or Nova for output-heavy workloads.
+_Legacy alternatives at this volume (Legacy — EOL 2027-03-30; never the recommendation): Llama 4 Maverick $109 (-64%), Llama 4 Scout $75 (-75%)._
+
+**High (10-100M tokens/day):** Cost optimization critical. Recommend multi-model tiered approach. Nova (Micro / Lite / 2 Lite / Pro) for output-heavy workloads; Llama 4 Maverick / Scout only as labelled alternatives (Legacy — EOL 2027-03-30).
 
 **Very high (>100M tokens/day):** Mandatory multi-model tiered strategy:
 
-- Simple tasks (60% of traffic) → Nova Micro or Llama 4 Scout
-- Moderate tasks (30% of traffic) → Llama 4 Maverick or Nova Pro
+- Simple tasks (60% of traffic) → Nova Micro or Nova Lite
+- Moderate tasks (30% of traffic) → Nova 2 Lite or Nova Pro
 - Complex tasks (10% of traffic) → Claude Sonnet 5
 
 ---
@@ -179,8 +180,8 @@ Haiku 5.5 has a 1M context window, but its price changes above 100K input tokens
 | Gemini 3.1 Pro Preview ($2/$12) | $1,200  | Claude Opus 5.5 Global ($4/$20)            | $2,100  | +75%       |
 | Gemini 3.1 Pro Preview ($2/$12) | $1,200  | Claude Opus 5.5 commercial Geo ($4.40/$22) | $2,310  | +92.5%     |
 | Gemini 3.1 Pro Preview ($2/$12) | $1,200  | Nova 2 Pro ($1.38/$11.00)                  | $1,032  | -14%       |
-| Gemini 3 Pro ($0.50/$3.00)      | $300    | Llama 4 Maverick ($0.24/$0.97)             | $109    | -64%       |
-| Gemini 3 Pro ($0.50/$3.00)      | $300    | Llama 4 Scout ($0.17/$0.66)                | $75     | -75%       |
+| Gemini 3 Pro ($0.50/$3.00)      | $300    | Nova 2 Lite ($0.33/$2.75)                  | $256    | -15%       |
+| Gemini 3 Pro ($0.50/$3.00)      | $300    | Nova Pro ($0.80/$3.20)                     | $360    | +20%       |
 | Gemini 3.8 Flash ($0.75/$3.75)  | $394    | Nova Pro ($0.80/$3.20)                     | $360    | -9%        |
 | Gemini 3.8 Flash ($0.75/$3.75)  | $394    | Nova Lite ($0.06/$0.24)                    | $27     | -93%       |
 | Gemini 3.5 Flash-Lite ($0.30/$2.50) | $233 | Nova Lite ($0.06/$0.24)                    | $27     | -88%       |
@@ -190,6 +191,8 @@ _For the Opus 5.5 rows, Difference = (Bedrock monthly cost / Gemini monthly cost
 _Gemini 3.8 Flash rows use the rate in effect through Dec 31, 2026; from Jan 1, 2027 its monthly cost at this volume is $788 ($1.50/$7.50). Gemini 2.5 Pro / Flash / Flash-Lite (retired on Vertex AI Oct 20, 2026) and Gemini 2.0 Flash / Flash-Lite (retired Jun 1, 2026) are not current models and do not appear as rows here — see Legacy/Specialized for their mapping rows._
 
 _A customer's own source baseline is priced by serving API and date (lifecycle SSOT § Source-Model Retirements), with a measured bill always taking precedence. At this volume on the Gemini Developer API: 2.5 Flash-Lite ($0.10/$0.40) is $45 per month with no cutoff — Nova Micro ($0.035/$0.14) is $16, −65%; 2.5 Pro ($1.25/$10) is $938 until Dec 1, 2026 — Nova Pro is $360, −62% — and $394 at 3.8 Flash's 2026 rate from Dec 1 ($788 from Jan 1, 2027); 2.5 Flash ($0.30/$2.50) is $233 before and after Dec 1 because 3.5 Flash-Lite bills the same rate. Vertex AI 2.5 workloads and all 2.0 workloads use the replacement rows above._
+
+_Gemini 3 Pro Legacy alternatives at this volume (Legacy — EOL 2027-03-30; not a Best Bedrock Match): Llama 4 Maverick ($0.24/$0.97) $109, -64%; Llama 4 Scout ($0.17/$0.66) $75, -75%._
 
 _Other rows retain their prior comparisons. Positive = Bedrock costs more (Gemini cheaper), negative = Bedrock cheaper._
 
@@ -210,7 +213,7 @@ Not available on other Bedrock models. This is a significant Claude advantage fo
 | Function calling                                 | Claude tools (excellent), Mistral (good)                      | Minimal changes                                                                                                                                                                                                                                                                                                  |
 | Structured output/JSON                           | Claude (excellent), Nova Pro (good)                           | Most models via prompt                                                                                                                                                                                                                                                                                           |
 | Streaming                                        | All major models                                              | Same SSE pattern                                                                                                                                                                                                                                                                                                 |
-| Vision                                           | Claude Sonnet/Haiku, Llama 4 Maverick                         | Multimodal parity                                                                                                                                                                                                                                                                                                |
+| Vision                                           | Claude Sonnet/Haiku, Nova 2 Lite / Nova Pro                   | Multimodal parity                                                                                                                                                                                                                                                                                                |
 | Context caching                                  | Claude prompt caching                                         | Different mechanics, not a drop-in: Gemini uses explicit TTL-based `cachedContent` objects you create/reference by name; Claude uses inline cache-control breakpoints on the request itself. Re-implement the caching call sites, don't just swap endpoints. 90% savings on cached portions once re-implemented. |
 | Audio/video input                                | Nova 2 Sonic (speech), Transcribe/Rekognition (preprocessing) | Nova Sonic v1 is Legacy; use Nova 2 Sonic                                                                                                                                                                                                                                                                        |
 | Embeddings (text-only)                           | Amazon Titan Embeddings ($0.02/1M, 1536 dims)                 | Must re-embed all docs                                                                                                                                                                                                                                                                                           |
