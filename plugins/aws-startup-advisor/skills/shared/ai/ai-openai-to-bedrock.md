@@ -214,7 +214,7 @@ Used for Tier 1 Option B. Source prices are OpenAI's own; Bedrock prices are the
 | o1-pro                      | 150.00 / 600.00 | Nova 2 Pro (Preview) | 1.375 / 11.00 | Bedrock 98% cheaper                      |
 | o3-pro                      | 20.00 / 80.00   | Nova 2 Pro (Preview) | 1.375 / 11.00 | Bedrock 89% cheaper                      |
 | o1                          | 15.00 / 60.00   | Nova 2 Pro (Preview) | 1.375 / 11.00 | Bedrock 85% cheaper                      |
-| o3                          | 2.00 / 8.00     | DeepSeek-R1          | 1.35 / 5.40   | Bedrock 32% cheaper                      |
+| o3                          | 2.00 / 8.00     | Claude Opus 5.5 (Global) | 4.00 / 20.00 | Source 57% cheaper                   |
 | o4-mini / o3-mini / o1-mini | 1.10 / 4.40     | GPT-5.6 Luna         | 0.22 / 1.32   | Bedrock 73% cheaper                      |
 | GPT-5.2                     | 1.75 / 14.00    | Claude Sonnet 5      | 2.00 / 10.00  | Bedrock 20% cheaper                      |
 | GPT-5.1 / GPT-5             | 1.25 / 10.00    | Claude Sonnet 5      | 2.00 / 10.00  | Source 11% cheaper                       |
@@ -286,7 +286,7 @@ rather than dismissing it. For a long-context (>272K) workload the gap is much w
 | Reasoning effort                           | `reasoning={"effort": ...}` on mantle                       | `none` / `low` / `medium` / `high` / `xhigh` / `max`                                                 |
 | Prompt caching                             | GPT-5.6 only (90% off cached input)                         | Not listed for GPT-5.5 / 5.4; Claude has its own caching                                             |
 | Streaming                                  | Supported                                                   | Verify per surface                                                                                   |
-| Vision                                     | GPT-5.x (image input) or Claude / Llama 4                   | Same-model preserves behavior                                                                        |
+| Vision                                     | GPT-5.x (image input) or Claude / Nova 2 Lite               | Same-model preserves behavior                                                                        |
 | JSON mode                                  | Claude (excellent), Nova Pro (good)                         | Most models via prompt                                                                               |
 | Embeddings (ada-002, `text-embedding-3-*`) | Titan Embeddings v2                                         | No OpenAI embedding model on Bedrock; must re-embed all documents                                    |
 | DALL-E / gpt-image                         | Stability AI                                                | Nova Canvas v1 is past EOL (2026-09-30); see `ai-model-lifecycle.md`                                 |
