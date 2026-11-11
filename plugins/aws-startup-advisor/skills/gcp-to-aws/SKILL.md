@@ -1,6 +1,6 @@
 ---
 name: gcp-to-aws
-description: "Migrate GCP workloads to AWS, including AI and agentic workloads from any provider. Triggers on: migrate from GCP, GCP to AWS, move off Google Cloud, Cloud SQL to RDS, GKE to EKS, Cloud Run to Fargate, App Engine to Elastic Beanstalk, or OpenAI/Gemini/agentic workloads to Bedrock. Discovery uses the authenticated read-only `gcloud` CLI, Terraform, app code, or billing exports, with optional consent-gated OpenAI, OpenRouter, and Anthropic usage APIs. Terraform is optional. Runs Discover, Clarify, Design, Estimate, Generate, and Feedback; Clarify gates later phases. Do not use for Azure migrations (see azure-to-aws), reverse migrations, general AWS architecture without migration intent, or GCP-to-GCP refactoring."
+description: "Migrate GCP workloads to AWS, including AI and agentic workloads from any provider. Triggers on: migrate from GCP, GCP to AWS, move off Google Cloud, Cloud SQL to RDS, GKE to EKS, Cloud Run to Fargate, App Engine to Elastic Beanstalk, or OpenAI/Gemini/agentic workloads to Bedrock. Discovery uses the authenticated read-only `gcloud` CLI, Terraform, app code, or billing exports, with optional consent-gated OpenAI, OpenRouter, and Anthropic usage APIs. Terraform is optional. Runs Discover, Clarify, Design, Estimate, Generate, an optional Decommission plan for the source cloud, and Feedback; Clarify gates later phases. Do not use for Azure migrations (see azure-to-aws), reverse migrations, general AWS architecture without migration intent, or GCP-to-GCP refactoring."
 ---
 
 # GCP-to-AWS Migration Skill
@@ -123,8 +123,11 @@ This is the execution controller. After completing each phase, consult this tabl
 | `generate`      | `phases.estimate == "completed"` AND `phases.workshop == "completed"` AND `phases.generate != "completed"` AND (`run_mode == "decide_and_execute"` OR the user's current-turn message is an explicit request to produce Terraform/migration scripts) | Load `references/phases/generate/generate.md` (workshop resolved — entered+exited or declined; see **Generate is opt-in** below)                                                                                                                                                                                                                                                                                                                 |
 | decide-complete | `current_phase == "complete"` AND `run_mode == "decide"` AND `phases.generate == "pending"`                                                                                                                                                          | Decision pack done; Generate available on request. On resume: "Your decision pack is complete. Generate Terraform and migration scripts now? [Yes] [Stay decision-only]" — Yes sets `run_mode: "decide_and_execute"`, `current_phase: "generate"`, loads `generate.md`. Never re-run Estimate.                                                                                                                                                   |
 | legacy-generate | `current_phase == "generate"` AND `run_mode` is absent AND `phases.generate != "completed"`                                                                                                                                                          | **Back-compat** for runs started before Generate was opt-in (or interrupted after an old auto-advance set `current_phase: generate` with no `run_mode`). Do **not** auto-load `generate.md` and do **not** hang with no matching row — present the same resume offer as decide-complete. Yes → set `run_mode: "decide_and_execute"` and continue Generate; No → set `run_mode: "decide"`, `current_phase: "complete"`, leave `generate` pending. |
-| `complete`      | `phases.generate == "completed"` AND `phases.feedback == "pending"`                                                                                                                                                                                  | Set `phases.feedback` to `"completed"` (user had two chances), then migration complete                                                                                                                                                                                                                                                                                                                                                           |
-| `complete`      | `phases.generate == "completed"` AND `phases.feedback == "completed"`                                                                                                                                                                                | Migration planning complete                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| decommission-offer | `current_phase == "complete"` AND `phases.generate == "completed"` AND `phases.decommission == "pending"` | Present the **Decommission offer** (below). Yes → set `phases.decommission: "in_progress"` and `current_phase: "decommission"` in one write, then load `references/phases/decommission/decommission.md`. No → set `phases.decommission: "completed"` (resolved: declined) and continue to the `complete` rows. |
+| `decommission` | `current_phase == "decommission"` AND `phases.generate == "completed"` AND `phases.decommission != "completed"` | Load `references/phases/decommission/decommission.md` (the user accepted; resume re-reads from disk and rewrites the plan) |
+| legacy-complete | `phases.generate == "completed"` AND `phases` has **no** `decommission` key | **Back-compat** for runs whose Generate completed before Decommission existed: Decommission reads as resolved. Do not offer it, do not add the key; continue to the `complete` rows. Only an explicit current-turn request for a decommission plan seeds `phases.decommission: "in_progress"` and `current_phase: "decommission"` and loads `decommission.md`. |
+| `complete` | `phases.generate == "completed"` AND `phases.decommission` is `"completed"` or absent AND `phases.feedback == "pending"` | Set `phases.feedback` to `"completed"` (user had two chances), then migration complete |
+| `complete` | `phases.generate == "completed"` AND `phases.decommission` is `"completed"` or absent AND `phases.feedback == "completed"` | Migration planning complete |
 
 **How to determine current state (deterministic):**
 
@@ -135,13 +138,18 @@ This is the execution controller. After completing each phase, consult this tabl
    on a plain "continue my migration" / resume. Explicit "what if" / "reprice" /
    "workshop mode" phrases also load `workshop.md` when Estimate artifacts exist.
 3. **Legacy Generate resume (mandatory):** If `current_phase == "generate"` AND `run_mode` is absent AND `phases.generate != "completed"`, follow the `legacy-generate` row — present the resume offer; do not auto-load `generate.md` and do not leave the state machine with no matching row.
-4. If `current_phase` exists (and steps 2–3 did not apply), use it (must match one of: discover, clarify, design, estimate, generate, complete)
+4. If `current_phase` exists (and steps 2–3 did not apply), use it (must match one of: discover, clarify, design, estimate, generate, decommission, complete). `current_phase == "complete"` with `phases.generate == "completed"` resolves through the decommission-offer, legacy-complete and `complete` rows above.
 5. Otherwise use ordered phase evaluation: `discover` → `clarify` → `design` → `estimate` → `generate`
-6. Pick the **first** phase in that order where `phases.<phase> != "completed"`; if none, state is `complete`. When evaluating `generate`, require `phases.workshop == "completed"` (seed `"pending"` on Discover so a missing key is not treated as resolved) **and** Generate opt-in consent (`run_mode == "decide_and_execute"` or an explicit request — see the hard rule above); without consent, treat the state as decide-complete and present the resume offer instead of loading `generate.md`.
+6. Pick the **first** phase in that order where `phases.<phase> != "completed"`; if none, resolve Decommission: `phases.decommission` absent or `"completed"` → state is `complete`; `"pending"` → the decommission-offer row; `"in_progress"` → the `decommission` row. When evaluating `generate`, require `phases.workshop == "completed"` (seed `"pending"` on Discover so a missing key is not treated as resolved) **and** Generate opt-in consent (`run_mode == "decide_and_execute"` or an explicit request — see the hard rule above); without consent, treat the state as decide-complete and present the resume offer instead of loading `generate.md`.
 
 **Phase gate checks**: If prior phase incomplete, do not advance (e.g., cannot enter estimate without completed design).
 
 **Generate is opt-in (HARD RULE):** Do not load `references/phases/generate/generate.md` unless the user chose option **C** at the post-Estimate Decision gate (`estimate.md`), accepted the decide-complete resume offer, or the user's current-turn message is an explicit request to produce Terraform / migration scripts (not merely mentioning Terraform). Never auto-chain into Generate after Estimate, the workshop, or feedback "to be helpful" — the decision is the product; execution artifacts are a second, explicit product. **On every Execute path (gate C, resume Yes, or an explicit ask), set `run_mode: "decide_and_execute"` in `.phase-status.json` BEFORE loading `generate.md`** — so a session that dies mid-Generate resumes as an Execute run, not a decide run. `run_mode: "decide"` or an absent `run_mode` is not consent.
+
+**Decommission is opt-in (HARD RULE):** Do not load `references/phases/decommission/decommission.md` unless `phases.generate == "completed"`, `run_mode == "decide_and_execute"`, and the user accepted the Decommission offer or the user's current-turn message explicitly asks for a decommission plan. It is never offered in a decision-only run (`run_mode: "decide"`), and never auto-chained after Generate. Declining resolves it (`phases.decommission: "completed"`) and the run ends as it did before this phase existed. The phase is advice and a checklist only: it never runs, and never writes, a `gcloud` (or any other) command that deletes, destroys, disables or shuts down a source resource; every step is for a person to carry out and confirm, so the read-only, consent-gated access promise to the source cloud still holds.
+
+**Decommission offer** (after Generate's `HANDOFF_OK`, and on resume in the decommission-offer row). Make it the only question in its message:
+"Plan shutting down GCP now? I'll write `decommission-plan.md`: for each source resource, how long to keep it for rollback, what to export first, and the order to delete it, plus closing the GCP bill. It's a checklist for you to carry out — I won't delete anything. [Yes, plan it] [No, I'm done]"
 
 **Clarify is mandatory:** Do not load `references/phases/design/design.md`, `references/phases/estimate/estimate.md`, or `references/phases/generate/generate.md` unless `$MIGRATION_DIR/.phase-status.json` exists and `phases.clarify` is exactly `"completed"`. A `preferences.json` file alone is **not** sufficient proof that Clarify ran. If the user asks to skip Clarify or jump straight to Design, cost estimate, or artifact generation, refuse briefly, then load `references/phases/clarify/clarify.md` and run Phase 2. There is no exception for "quick" or "obvious" migrations.
 
@@ -167,15 +175,15 @@ When reading `$MIGRATION_DIR/.phase-status.json`, validate before proceeding:
 
 1. **Multiple sessions**: If multiple directories exist under `.migration/`, list them with their phase status and ask: [A] Resume latest, [B] Start fresh, [C] Cancel.
 2. **Invalid JSON**: If `.phase-status.json` fails to parse, do NOT delete it and do NOT restart from Discover — the phase artifacts on disk are the durable record of progress. Reconstruct instead:
-   1. Enumerate `$MIGRATION_DIR` and infer completed phases from artifacts: any of `gcp-resource-inventory.json` / `ai-workload-profile.json` — or a `billing-profile.json` with non-empty `services[]` — → discover completed (a **skip-record** `billing-profile.json`, empty `services[]` + non-empty `warnings[]`, does NOT by itself mean discover completed — it records skipped billing, not a discovered workload); `preferences.json` → clarify completed; `aws-design.json` / `aws-design-ai.json` / `aws-design-billing.json` → design completed; `estimation-*.json` → estimate completed (**partial-write check:** if `preferences.json` has an `ai_constraints` section — or `ai-workload-profile.json` / `aws-design-ai.json` is present — but `estimation-ai.json` is missing while another `estimation-*.json` exists, treat estimate as **incomplete**, not completed; propose resume at estimate); `generation-*.json` or `MIGRATION_GUIDE.md` → generate completed.
+   1. Enumerate `$MIGRATION_DIR` and infer completed phases from artifacts: any of `gcp-resource-inventory.json` / `ai-workload-profile.json` — or a `billing-profile.json` with non-empty `services[]` — → discover completed (a **skip-record** `billing-profile.json`, empty `services[]` + non-empty `warnings[]`, does NOT by itself mean discover completed — it records skipped billing, not a discovered workload); `preferences.json` → clarify completed; `aws-design.json` / `aws-design-ai.json` / `aws-design-billing.json` → design completed; `estimation-*.json` → estimate completed (**partial-write check:** if `preferences.json` has an `ai_constraints` section — or `ai-workload-profile.json` / `aws-design-ai.json` is present — but `estimation-ai.json` is missing while another `estimation-*.json` exists, treat estimate as **incomplete**, not completed; propose resume at estimate); `generation-*.json` or `MIGRATION_GUIDE.md` → generate completed; then `decommission-plan.md` → decommission completed, otherwise decommission `"pending"` (the offer is presented again).
    2. Present the inferred status to the user: "Your state file was corrupted, but I can see [phases] completed from the artifacts on disk. Resume at [next phase]? (Y/N)". **Confirmation is the safety net for residual ambiguity** (e.g. other partial writes the heuristic misses) — on N, the user picks the phase to resume.
    3. On Y: rewrite `.phase-status.json` with the inferred phases marked `"completed"`, the next phase `"pending"`, `current_phase` set to it, a fresh `last_updated`, `owning_skill` set to `GCP_TO_AWS`, and a fresh `run_id` (the original is unrecoverable from a corrupt file). Continue normally. On N: ask which phase to resume from and write that instead.
       This is reconstruction of ground truth from artifacts, not artifact-patching to pass a gate — the handoff-gate prohibition does not apply to `.phase-status.json` recovery.
-3. **Unrecognized phase**: If `phases` object contains a phase not in {discover, clarify, design, estimate, workshop, generate, feedback}, STOP. Output: "Unrecognized phase: [value]. Valid phases: discover, clarify, design, estimate, workshop, generate, feedback."
+3. **Unrecognized phase**: If `phases` object contains a phase not in {discover, clarify, design, estimate, workshop, generate, decommission, feedback}, STOP. Output: "Unrecognized phase: [value]. Valid phases: discover, clarify, design, estimate, workshop, generate, decommission, feedback." A missing `decommission` key is valid (runs started before the phase existed; see the legacy-complete row).
 4. **Unrecognized status**: If any `phases.*` value is not in {pending, in_progress, completed}, STOP. Output: "Unrecognized status: [value]. Valid values: pending, in_progress, completed."
-5. **Invalid `current_phase`** (if present): If `current_phase` is not in {discover, clarify, design, estimate, generate, complete}, STOP. Output: "Unrecognized current_phase: [value]. Valid values: discover, clarify, design, estimate, generate, complete." (`workshop` and `feedback` are sidebars — never `current_phase`.)
-6. **Out-of-order completion**: For ordered phases [discover, clarify, design, estimate, generate], if any later phase is `"completed"` while an earlier phase is not `"completed"`, STOP. Output: "Inconsistent phase ordering detected. Reconcile `.phase-status.json` before resuming."
-7. **Multiple active phases**: Across core phases {discover, clarify, design, estimate, generate}, at most one phase may be `"in_progress"`. If >1, STOP. Output: "Multiple phases are in_progress. Keep only one active phase before resuming." (Sidebar `workshop`/`feedback` may be `in_progress` while estimate is `completed`.)
+5. **Invalid `current_phase`** (if present): If `current_phase` is not in {discover, clarify, design, estimate, generate, decommission, complete}, STOP. Output: "Unrecognized current_phase: [value]. Valid values: discover, clarify, design, estimate, generate, decommission, complete." (`workshop` and `feedback` are sidebars — never `current_phase`.)
+6. **Out-of-order completion**: For ordered phases [discover, clarify, design, estimate, generate, decommission] (an absent `decommission` key is skipped), if any later phase is `"completed"` while an earlier phase is not `"completed"`, STOP. Output: "Inconsistent phase ordering detected. Reconcile `.phase-status.json` before resuming."
+7. **Multiple active phases**: Across core phases {discover, clarify, design, estimate, generate, decommission}, at most one phase may be `"in_progress"`. If >1, STOP. Output: "Multiple phases are in_progress. Keep only one active phase before resuming." (Sidebar `workshop`/`feedback` may be `in_progress` while estimate is `completed`.)
 
 ---
 
@@ -199,13 +207,15 @@ Migration state lives in `$MIGRATION_DIR` (`.migration/[MMDD-HHMM]/`), created b
     "estimate": "pending",
     "workshop": "pending",
     "generate": "pending",
+    "decommission": "pending",
     "feedback": "pending"
   }
 }
 ```
 
 **Status values:** `"pending"` → `"in_progress"` → `"completed"`. Never goes backward.
-For core phases (discover, clarify, design, estimate, generate), at most one phase may be `"in_progress"` at any time.
+For core phases (discover, clarify, design, estimate, generate, decommission), at most one phase may be `"in_progress"` at any time.
+`decommission` is opt-in after Generate: `"completed"` means resolved (planned or declined); it stays `"pending"` in a decision-only run. A run with no `decommission` key started before the phase existed and reads as Decommission resolved (see the legacy-complete row).
 `workshop` and `feedback` are optional sidebars (never `current_phase`).
 `current_phase` is optional but recommended; when present it is authoritative.
 `run_id` (a random UUID) and `owning_skill` (`GCP_TO_AWS`) are seeded by Discover on a fresh run and never change; `run_id` is the run's identifier for telemetry and the plugin-to-web handoff. `initiated_by` is optional: the identifier of the skill that invoked this run (e.g. `LLM_TO_BEDROCK`).
@@ -219,7 +229,7 @@ Use **read-merge-write** updates for `.phase-status.json`:
 1. Read the current file before every update.
 2. Change only the phase keys being advanced and `last_updated`. Never change `run_id` or `owning_skill`.
 3. Keep prior completed phases unchanged.
-4. Set `current_phase` to the next deterministic phase — or `complete` after Generate, **or** after Estimate when the user chose Decision-gate **A** (`run_mode: "decide"`; Generate stays pending).
+4. Set `current_phase` to the next deterministic phase — or `complete` after Generate (Generate also sets `phases.decommission: "pending"` for the offer) and after Decommission resolves, **or** after Estimate when the user chose Decision-gate **A** (`run_mode: "decide"`; Generate stays pending).
 5. Write the full file in the same turn as your final phase work message.
 6. Reconcile the saved state with the explicit project root per
    `references/vendored/telemetry/PROTOCOL.md` in both reporting modes before
@@ -241,6 +251,7 @@ Example — after completing the Clarify phase, write `$MIGRATION_DIR/.phase-sta
     "estimate": "pending",
     "workshop": "pending",
     "generate": "pending",
+    "decommission": "pending",
     "feedback": "pending"
   }
 }
@@ -260,6 +271,7 @@ Replace `MMDD-HHMM` with the actual migration ID, generate the `last_updated` IS
 | **Estimate** | `aws-design.json` or `aws-design-billing.json` or `aws-design-ai.json`, `preferences.json`                                                                               | `estimation-infra.json` or `estimation-ai.json` or `estimation-billing.json`, `.phase-status.json` updated                                                                                                                                    | `references/phases/estimate/estimate.md` |
 | **Workshop** | Post-Estimate infra artifacts (`gcp-resource-inventory.json`, `preferences.json`, `aws-design.json`, `estimation-infra.json`) — optional sidebar                         | `scenarios/`, patched `preferences.json` / design / estimate; `.phase-status.json` (`workshop`)                                                                                                                                               | `references/phases/workshop/workshop.md` |
 | **Generate** | `estimation-infra.json` or `estimation-ai.json` or `estimation-billing.json`, `aws-design.json` or `aws-design-billing.json` or `aws-design-ai.json`, `preferences.json` | `generation-infra.json` or `generation-ai.json` or `generation-billing.json` + `terraform/`, `scripts/`, `ai-migration/`, `validation-report.json` (when infra route active), `MIGRATION_GUIDE.md`, `README.md`, `.phase-status.json` updated | `references/phases/generate/generate.md` |
+| **Decommission** | Generate completed + accepted offer; `gcp-resource-inventory.json` or `billing-profile.json` or `ai-workload-profile.json`, the design and `generation-*.json` artifacts, `MIGRATION_GUIDE.md`, `preferences.json` — optional, opt-in | `decommission-plan.md` (per-resource keep-until, retain/export, deletion order; billing closure), `.phase-status.json` updated | `references/phases/decommission/decommission.md` |
 | **Feedback** | `.phase-status.json` (discover completed minimum), all existing migration artifacts                                                                                      | `feedback.json`, `trace.json`, `.phase-status.json` updated                                                                                                                                                                                   | `references/phases/feedback/feedback.md` |
 
 ---
@@ -322,8 +334,10 @@ gcp-to-aws/
 │   │   │   ├── generate-artifacts-ai.md        # Provider adapter + test harness
 │   │   │   ├── generate-artifacts-billing.md   # Skeleton Terraform
 │   │   │   └── generate-artifacts-docs.md      # MIGRATION_GUIDE.md + README.md
+│   │   ├── decommission/
+│   │   │   └── decommission.md                 # Phase 6: Decommission plan (opt-in; advice only)
 │   │   └── feedback/
-│   │       ├── feedback.md                     # Phase 6: Feedback orchestrator
+│   │       ├── feedback.md                     # Phase 7: Feedback orchestrator
 │   │       └── feedback-trace.md               # Anonymized trace builder
 │   │
 │   ├── design-refs/
@@ -406,7 +420,7 @@ When invoked, the agent **MUST follow this exact sequence**:
 2. **Determine phase to execute**:
    - If `current_phase` exists: execute that phase.
    - Otherwise execute the first non-completed phase in ordered list: discover → clarify → design → estimate → generate.
-   - If all ordered phases are completed: migration is complete (with feedback finalization rule).
+   - If all ordered phases are completed: resolve Decommission per the State Machine (offer when `"pending"`, resume when `"in_progress"`), then the migration is complete (with feedback finalization rule).
 
 3. **Read phase reference**: Load the full reference file for the target phase.
 
@@ -446,13 +460,18 @@ When invoked, the agent **MUST follow this exact sequence**:
      "workshop mode", or "compare scenarios" and infra Estimate artifacts exist,
      load `references/phases/workshop/workshop.md` (respect Generate re-entry).
 
-   - **After Generate**: No feedback offer. If `phases.feedback` is still `"pending"`, use the Phase Status Update Protocol to set it to `"completed"` (user had two chances and chose to defer/skip).
+   - **After Generate**: No feedback offer. Present the **Decommission offer** (State Machine) as the only question in its message.
+     - Yes → load `references/phases/decommission/decommission.md`; its completion step finalizes feedback.
+     - No → set `phases.decommission` to `"completed"`.
+   - **After Decommission resolves** (declined, or `HANDOFF_OK | phase=decommission`): no feedback offer. If `phases.feedback` is still `"pending"`, use the Phase Status Update Protocol to set it to `"completed"` (user had two chances and chose to defer/skip).
 
 9. **Display summary**: Show user what was accomplished, highlight next phase, or confirm migration completion.
 
 10. **BigQuery follow-up (end of run only)**: When the run has just finished (the gate-A
-    closing sequence in `references/phases/estimate/estimate.md`, or the Summary in
-    `references/phases/generate/generate.md`, each including its web-handoff block when shown)
+    closing sequence in `references/phases/estimate/estimate.md`, or — after the Summary in
+    `references/phases/generate/generate.md`, with its web-handoff block when shown — the
+    Decommission offer resolving: declined, or the Summary in
+    `references/phases/decommission/decommission.md`)
     and BigQuery was detected (`preferences.json` →
     `metadata.inventory_clarifications.bigquery_present: true`, or a BigQuery resource marked
     `Deferred — specialist engagement` in the design artifact), load
@@ -486,6 +505,7 @@ User can invoke the skill again to resume from `current_phase` (or deterministic
 - Multi-path Design (infrastructure, AI workloads, billing-only fallback)
 - AWS cost estimation (cache-only, from the bundled pricing cache)
 - Migration artifact generation (Terraform, scripts, AI adapters, documentation)
+- Optional source-cloud decommission plan after Generate (advice and checklist only; deletes nothing)
 - Optional feedback collection with anonymized telemetry
 
 ## Contextual offers (final step)
