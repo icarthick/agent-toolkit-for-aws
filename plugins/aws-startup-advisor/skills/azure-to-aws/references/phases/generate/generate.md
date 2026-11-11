@@ -37,7 +37,12 @@ _produces:
   - { file: terraform/terraform.tfvars.example, _when: "run has an infra track" }
   - { file: MIGRATION_GUIDE.md, _when: "run has an infra track" }
   - { file: generation-ai.json, _when: "run has an AI track and run_mode is decide_and_execute" }
-_advances_to: complete
+_advances_to: decommission
+_re_entry_guard:
+  _stale_if_completed: decommission
+  _stale_artifact: decommission-plan.md
+  _on_reentry: stop_unless_confirmed
+  _on_confirm: reset_downstream_to_pending
 _interactive: false
 _exec:
   _agent: rw
@@ -166,7 +171,9 @@ and step 5 run in the MAIN window — the worker cannot invoke skills or run
    - An unresolved `POLICY_FAIL` the user does not `skip`/`abort` sets `status: policy_failed`
      and blocks completion (the `_postconditions` `_assert`).
 5. Evaluate `_postconditions`. On all-pass emit `HANDOFF_OK` and advance to
-   `complete`; on any failure emit `GATE_FAIL` and stop.
+   `decommission`; on any failure emit `GATE_FAIL` and stop. Decommission is opt-in:
+   the migration is not complete until SKILL.md § Decommission routing has offered it
+   and the user has accepted or declined.
 
 **Write the web-handoff summary (fail-open), only after `HANDOFF_OK`:** run
 `python3 "$PLUGIN_ROOT/scripts/emit-plan-json.py" --migration-dir "$MIGRATION_DIR" --plugin-json "$PLUGIN_ROOT/.claude-plugin/plugin.json"`
@@ -237,3 +244,7 @@ script output to the user.
 > - Interactive plan dashboard
 > - Monthly cost estimate
 > - Migration paths: AI agent, AWS expert, or AWS Partner
+
+**Then offer Decommission.** After the What's next block (or after the completion
+summary, when the writer printed `PLAN_SKIP`), present the Decommission offer from
+SKILL.md § Decommission routing as its own message.
