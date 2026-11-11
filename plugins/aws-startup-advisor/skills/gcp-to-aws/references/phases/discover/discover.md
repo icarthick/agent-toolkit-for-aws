@@ -59,6 +59,7 @@ Multiple artifacts can be produced in a single run — they are not mutually exc
        "estimate": "pending",
        "workshop": "pending",
        "generate": "pending",
+       "decommission": "pending",
        "feedback": "pending"
      }
    }
@@ -338,9 +339,9 @@ Output to user — build message from whichever artifacts exist:
 
 Append the preview block from Step 3 to the output message below.
 
-Format: "Phase 1 of 6 complete (Discover). [artifact summaries joined by space] [preview block from discover-preview.md Step 6]"
+Format: "Phase 1 of 7 complete (Discover). [artifact summaries joined by space] [preview block from discover-preview.md Step 6]"
 
-Then: "Remaining: Clarify → Design → Estimate → Generate (+ optional Feedback). Next required step: Phase 2 — Clarify. Load `references/phases/clarify/clarify.md` now. Do not load Design, Estimate, or Generate until Clarify completes and `.phase-status.json` marks `phases.clarify` as `completed`."
+Then: "Remaining: Clarify → Design → Estimate → Generate (+ optional Decommission, Feedback). Next required step: Phase 2 — Clarify. Load `references/phases/clarify/clarify.md` now. Do not load Design, Estimate, or Generate until Clarify completes and `.phase-status.json` marks `phases.clarify` as `completed`."
 
 _Breadcrumbs are emitted only after outer-run `HANDOFF_OK` — never on `GATE_FAIL`, never from inner workshop reprices._
 

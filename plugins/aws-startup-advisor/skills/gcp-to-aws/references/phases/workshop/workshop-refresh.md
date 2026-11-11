@@ -46,7 +46,7 @@ If fingerprint ≠ `index.inventory_fingerprint`, **STOP**:
 
 ### 2. Stale Generate guard
 
-If generate completed, require re-entry confirm and reset generate to `pending`.
+If generate completed, require re-entry confirm and reset generate (and decommission) to `pending`.
 
 ### 3. Patch preferences
 

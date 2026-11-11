@@ -14,7 +14,7 @@ All phases MUST pass a handoff gate before marking `phases.<phase>` as `"complet
 ### Parseable failure format (required)
 
 ```
-GATE_FAIL | phase=<discover|clarify|design|estimate|generate> | field=<dotted.path> | reason=<missing|invalid|stale_downstream>
+GATE_FAIL | phase=<discover|clarify|design|estimate|generate|decommission> | field=<dotted.path> | reason=<missing|invalid|stale_downstream>
 ```
 
 Examples:
@@ -86,6 +86,7 @@ In `hook` mode, leave reporting to the host hooks.
 | Re-run **Discover** after **Clarify** completed      | **STOP** unless user explicitly confirms. Emit `GATE_FAIL \| phase=discover \| field=preferences.json \| reason=stale_downstream`. Downstream artifacts may be stale. |
 | Re-run **Clarify** after **Design** completed        | Same — confirm with user; Design/Estimate may need re-run.                                                                                                            |
 | Re-run **Estimate** after **Generate** started       | Same — confirm with user; report and Terraform may be stale.                                                                                                          |
+| Re-run **Generate** (or any earlier phase) after **Decommission** completed | Same — confirm with user; `decommission-plan.md` was built from the old Generate artifacts and may be stale. Emit `GATE_FAIL \| phase=<re-run phase> \| field=decommission-plan.md \| reason=stale_downstream`. On confirm, reset `phases.decommission` to `"pending"` with the other downstream phases. |
 | Enter **Generate** with a declared compliance framework but no `security_baseline_compliance` line in `estimation-infra.json` | **STOP** unless user explicitly confirms. Emit `GATE_FAIL \| phase=generate \| field=estimation-infra.json.projected_costs.breakdown.security_baseline_compliance \| reason=stale_downstream`. Estimate ran before the compliance answer was applied — budget and report totals would understate. |
 | Re-run a phase **before** downstream phase completed | Allowed. Overwrite that phase's artifacts; downstream phases remain `"pending"` or must be re-run.                                                                    |
 
@@ -131,6 +132,7 @@ Detailed checklists live in each phase file. Minimum gates:
 | **design**   | Active route artifacts present (existing gates)                                                                   |
 | **estimate** | Active route artifacts present; infra route → `recommendation.path` + non-empty `migrate_if` / `stay_if`          |
 | **generate** | Load `shared/validate-artifacts.md` before report; report pre-write sanity (see `generate-artifacts-report.md`); compliance-estimate staleness guard (see `generate.md` Prerequisites) |
+| **decommission** | Opt-in only (Generate completed, `decide_and_execute`, offer accepted); `decommission-plan.md` has one row per source resource with keep-until and retain/export, in deletion order, plus billing closure; no delete command (see `decommission.md` Phase Completion) |
 
 ---
 

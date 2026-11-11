@@ -16,6 +16,7 @@ Lightweight phase tracking. This is the SINGLE source of truth for the `.phase-s
     "estimate": "pending",
     "workshop": "pending",
     "generate": "pending",
+    "decommission": "pending",
     "feedback": "pending"
   }
 }
@@ -46,7 +47,13 @@ Lightweight phase tracking. This is the SINGLE source of truth for the `.phase-s
 **Rules:**
 
 - Phase status progresses: `"pending"` → `"in_progress"` → `"completed"`. Never goes backward.
-- Valid phase names: discover, clarify, design, estimate, workshop, generate, feedback.
+- Valid phase names: discover, clarify, design, estimate, workshop, generate, decommission, feedback.
+- `decommission` is the opt-in phase after Generate (`references/phases/decommission/decommission.md`):
+  offered only once `phases.generate` is `"completed"` in a `decide_and_execute` run, and
+  `"completed"` means resolved (plan written, or offer declined). It may appear as
+  `current_phase` while the plan is being written. It stays `"pending"` in a decision-only run.
+  **A missing `decommission` key is valid**: the run started before the phase existed; with
+  `phases.generate: "completed"` it reads as complete and is not offered Decommission.
 - `workshop` is an optional **sidebar** (like feedback): never appears as
   `current_phase`; `"completed"` means resolved (entered or declined).
 - `migration_id` matches the `$MIGRATION_DIR` folder name (e.g., `0226-1430`).

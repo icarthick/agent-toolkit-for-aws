@@ -218,6 +218,7 @@ After `HANDOFF_OK`, use the Phase Status Update Protocol (read-merge-write) to u
 
 - Set `phases.generate` to `"completed"`
 - Set `current_phase` to `"complete"`
+- Set `phases.decommission` to `"pending"` (add the key if the run started before it existed), so the Decommission offer below is presented, and re-presented on resume
 
 **Write the web-handoff summary (fail-open):** run
 `python3 "$PLUGIN_ROOT/scripts/emit-plan-json.py" --migration-dir "$MIGRATION_DIR" --plugin-json "$PLUGIN_ROOT/.claude-plugin/plugin.json"`
@@ -258,8 +259,8 @@ After the structured block, include:
 
 Output to user:
 
-- If `migration-report.html` exists: "Phase 5 of 6 complete (Generate). All required phases of the GCP-to-AWS migration analysis are complete. Your migration report is ready at $MIGRATION_DIR/migration-report.html. Optional: Phase 6 (Feedback)."
-- If `migration-report.html` is missing: "Phase 5 of 6 complete (Generate). All required phases of the GCP-to-AWS migration analysis are complete. Markdown documentation is available at $MIGRATION_DIR/MIGRATION_GUIDE.md and $MIGRATION_DIR/README.md. (HTML report generation is optional and non-blocking.) Optional: Phase 6 (Feedback)."
+- If `migration-report.html` exists: "Phase 5 of 7 complete (Generate). All required phases of the GCP-to-AWS migration analysis are complete. Your migration report is ready at $MIGRATION_DIR/migration-report.html. Optional: Phase 6 (Decommission) — see below."
+- If `migration-report.html` is missing: "Phase 5 of 7 complete (Generate). All required phases of the GCP-to-AWS migration analysis are complete. Markdown documentation is available at $MIGRATION_DIR/MIGRATION_GUIDE.md and $MIGRATION_DIR/README.md. (HTML report generation is optional and non-blocking.) Optional: Phase 6 (Decommission) — see below."
 
 **Web-handoff — only when the writer above printed `PLAN_OK`** (if it printed `PLAN_SKIP`, omit this whole block; there is no file to upload). Do three things, in order:
 
@@ -331,6 +332,8 @@ Output to user:
 
 Ship note: this reaches customers only after the import page and the ImportPlan API are both live in production.
 
-**BigQuery follow-up:** after the summary and the web-handoff block (when shown), apply `SKILL.md` Workflow Execution step 10 last. It does nothing when BigQuery was not detected.
+**Decommission offer:** after the summary and the web-handoff block (when shown), present the **Decommission offer** from `SKILL.md` (State Machine) as its own message, the only question in it. Yes → load `references/phases/decommission/decommission.md`. No → set `phases.decommission` to `"completed"` (read-merge-write). Never load the phase without a Yes.
+
+**BigQuery follow-up:** once the Decommission offer has resolved (declined, or the Decommission summary shown), apply `SKILL.md` Workflow Execution step 10 last. It does nothing when BigQuery was not detected.
 
 _Breadcrumbs are emitted only after outer-run `HANDOFF_OK` — never on `GATE_FAIL`, never from inner workshop reprices._

@@ -1,4 +1,4 @@
-# Phase 6: Feedback (Optional)
+# Phase 7: Feedback (Optional)
 
 Builds an anonymized usage trace and directs the user to the Pulse survey form.
 
@@ -122,4 +122,4 @@ Use the Phase Status Update Protocol (read-merge-write) to update `.phase-status
 
 Output to user: "Thank you for helping improve this tool."
 
-After feedback completes, return control to the workflow execution in SKILL.md. The calling sidebar determines whether to advance to the next phase or end the migration.
+After feedback completes, return control to the workflow execution in SKILL.md. The calling sidebar determines whether to advance to the next phase or end the migration. Feedback does not resolve Decommission: when `phases.generate` is `"completed"` and `phases.decommission` is `"pending"`, the Decommission offer is still due (SKILL.md State Machine).

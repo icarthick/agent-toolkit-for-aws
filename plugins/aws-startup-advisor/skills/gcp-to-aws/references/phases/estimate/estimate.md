@@ -156,7 +156,7 @@ for Terraform/scripts).
 Present (values from the active estimate artifacts; one line each):
 
 ```
-Phase 4 of 6 complete (Estimate). Remaining: Generate (+ optional Feedback).
+Phase 4 of 7 complete (Estimate). Remaining: Generate (+ optional Decommission, Feedback).
 
 ### Decision pack ready
 
@@ -312,8 +312,8 @@ commit." Suggest at most one.
 
 For AI-only / billing-only runs (no infra inventory), present the gate without
 option B and set `phases.workshop` → `"completed"`. Prefix the presented gate
-with the same breadcrumb line: "Phase 4 of 6 complete (Estimate). Remaining:
-Generate (+ optional Feedback)." For an AI-only run, also replace option C's
+with the same breadcrumb line: "Phase 4 of 7 complete (Estimate). Remaining:
+Generate (+ optional Decommission, Feedback)." For an AI-only run, also replace option C's
 label with the artifact route Generate will actually emit. Resolve that route
 in this order — the OpenRouter subroute wins over `migration_path`, because
 `generate-artifacts-ai.md` Step 3B does — and then show only the matching label:
