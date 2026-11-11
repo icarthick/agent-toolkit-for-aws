@@ -50,6 +50,15 @@ What the source workload _is_ decides more than anything the customer could tell
 | `Microsoft.Compute/virtualMachineScaleSets`                                                              | **EC2 Auto Scaling group**                                               |
 | `Microsoft.Web/staticSites`                                                                              | **S3 + CloudFront**, plus Lambda + API Gateway for its managed functions |
 
+**A scale-to-zero Container App (`min_replicas = 0`) becomes an ECS service with a minimum
+of 1 task, and that is a cost change the customer must be told about.** An ECS service
+can sit at zero tasks, but its auto scaling acts on CloudWatch metrics and alarms, so
+nothing starts a task for an incoming request. To stay reachable the service keeps one
+task running, and Fargate bills each task from image pull until it stops: the app now
+runs, and is billed, all the time. The design rationale and the migration guide must both
+say so: state it in the service's customer-facing `rationale`, part of the `services[]`
+entry Generate reads when it writes the guide.
+
 **Elastic Beanstalk is the App Service Plan default, and the reason is posture not
 preference.** App Service is a managed platform the customer already pays for: AWS
 manages deployments, scaling, patching, and health. Fargate hands them a container
