@@ -68,14 +68,39 @@ direct counterpart:
 Emit a `warnings[]` entry for any GRS/GZRS account, because the estimate has to gain a
 replication cost that the source's single SKU hid.
 
-## 5. NetApp Files
+## 5. Bucket security posture
+
+Three Storage account security attributes look like mapping rows but are not. None is
+read at extraction: `references/shared/extract-terraform.md` captures only
+`account_tier`, `account_replication_type`, `account_kind` and `static_website` for
+`Microsoft.Storage/storageAccounts`, and the only public-access input it reads is a
+container's `container_access_type`.
+
+| Azure                                | AWS today                                                                                                                                                                                       |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `blob_properties.versioning_enabled` | **Posture default, not a mapping.** Every emitted bucket gets `aws_s3_bucket_versioning` with status `Enabled`, whatever the source value is. A source with versioning off still gets `Enabled` |
+| `allow_nested_items_to_be_public`    | **Posture default, not a mapping.** Every emitted bucket gets `aws_s3_bucket_public_access_block` with all four flags `true`, whatever the source value is                                      |
+| `min_tls_version`                    | **Not mapped — a known gap.** No TLS-enforcing bucket policy is emitted                                                                                                                         |
+
+Both defaults come from the Generate phase's Storage rule and its self-check
+(`references/phases/generate/generate-artifacts-infra.md`), which apply them to every
+`aws_s3_bucket`. Not reading the two source attributes is therefore harmless: Generate
+never decides on either one.
+
+`min_tls_version` is different. S3 accepts both HTTP and HTTPS requests unless a bucket
+policy denies HTTP. To enforce TLS, a bucket policy would have to deny requests where
+`aws:SecureTransport` is `false`, and to enforce a minimum TLS version it would also need
+a deny on `s3:TlsVersion` (for example `NumericLessThan` `1.2`). The skill emits neither,
+so a source account's minimum-TLS requirement does not carry over today.
+
+## 6. NetApp Files
 
 `Microsoft.NetApp/*` arrives here via `namespace_routing`. Target is **FSx for NetApp
 ONTAP** — the same vendor platform, so it is a genuine like-for-like. Capacity pools and
 volumes map to a file system and volumes. Treat the service-level (Standard/Premium/Ultra)
 as a throughput requirement, not an instance size.
 
-## 6. Output
+## 7. Output
 
 Per `schema-design-aws.md` § `services[]`: `aws_service`, `aws_config` (storage class,
 lifecycle intent, replication, protocol for a share), `confidence: "inferred"`,
