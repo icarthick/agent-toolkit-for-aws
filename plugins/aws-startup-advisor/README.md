@@ -83,6 +83,8 @@ To add a check, define a task in this file and add it to `tasks.ci.depends`; the
 
 The Startup advisor workflow runs on pull requests that change this plugin, the root `mise.toml`, or `.github/workflows/startup-advisor.yml`. It also supports manual runs.
 
+Before opening a pull request, run every check together with `mise -C plugins/aws-startup-advisor run ci`.
+
 ### Independently accept a migration run
 
 From `plugins/aws-startup-advisor` in a repository checkout, use the local
