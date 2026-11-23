@@ -77,6 +77,7 @@ Install all 16 skills together rather than a subset: `agent-advisor` delegates t
 ## Development checks
 
 From the repository root, run `mise -C plugins/aws-startup-advisor run ci`.
+To run one check on its own, name its task, for example `mise -C plugins/aws-startup-advisor run lint:md`.
 The plugin's [`mise.toml`](mise.toml) inherits the root tool configuration. It runs the lint tasks, including model-reference lint, and every test suite: the contract tests in `tests/`, the agent-advisor, llm-to-bedrock, render-to-aws, and skill-script suites, telemetry, and the Heroku source-review tests.
 It also declares Terraform under `[tools]`: the Render replay test runs `terraform fmt`, `init -backend=false`, and `validate` against each generated migration pack and fails closed if the binary is missing, so the workflow installs it through mise rather than relying on the runner image.
 To add a check, define a task in this file and add it to `tasks.ci.depends`; the workflow keeps calling the same `ci` task. To add a tool a check needs, pin it under `[tools]` in this file; the workflow's `mise-action` step installs whatever this file declares.
